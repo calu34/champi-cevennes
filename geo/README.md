@@ -1,5 +1,19 @@
 # Phase habitat — préparation des couches SIG
 
+## État
+
+- **H1 — forêts domaniales ONF : FAIT.** `geo/fetch-onf.mjs` récupère les 90 forêts
+  domaniales des 6 départements (WFS Géoplateforme `ONF.FORETS_PUBLIQUES`, filtre
+  `cdom_frt='OUI'`), simplifie, écrit `web/assets/data/forets-domaniales.geojson`
+  (versionné). La carte les affiche colorées par l'indice de la maille qui les
+  contient, avec un interrupteur « Forêts domaniales ».
+- **H2 essence (BD Forêt V2)** — à faire
+- **H3 substrat acide/calcaire (BRGM)** — à faire
+- **H4 pente/exposition (MNT)** — à faire (le filtre altitude actuel est un repli)
+
+---
+
+
 Objectif : produire **`data/habitat/parcels.geojson`** = les **parcelles forestières
 domaniales ONF** des 6 départements, chacune enrichie de :
 
