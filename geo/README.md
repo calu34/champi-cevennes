@@ -26,16 +26,27 @@
 > L'enrichissement habitat (essence/substrat/MNT) n'est porté que par la couche
 > **forêts domaniales**, pas par les mailles de la grille.
 
+- **H5 — brûlis (morilles) : HOOK en place, données à fournir.** `geo/fetch-brulis.mjs`
+  écrit `web/assets/data/brulis.geojson`. Pas de source API stable (EFFIS instable,
+  BDIFF sans API). En attendant : déposer `geo/brulis-manuel.geojson` (une Feature par
+  incendie, propriété `annee`) puis relancer. La carte affiche le calque « Brûlis »
+  et **×2.2 sur la morille** pour les forêts recoupant un feu de < 2 ans. Calque masqué
+  si le fichier est vide.
+
 ## Régénérer les couches
 
 ```
-node geo/fetch-onf.mjs       # base : périmètres des forêts domaniales
-node geo/fetch-bdforet.mjs   # + essence
-node geo/fetch-brgm.mjs      # + substrat
-node geo/fetch-mnt.mjs       # + altitude/pente/exposition
+node geo/fetch-departements.mjs   # contours des départements (tous, ou codes en args)
+node geo/fetch-onf.mjs            # périmètres des forêts domaniales
+node geo/fetch-bdforet.mjs        # + essence
+node geo/fetch-brgm.mjs           # + substrat
+node geo/fetch-mnt.mjs            # + altitude/pente/exposition
+node geo/fetch-brulis.mjs         # brûlis (si geo/brulis-manuel.geojson fourni)
 ```
-Le résultat `web/assets/data/forets-domaniales.geojson` est versionné — à relancer
-seulement si les données sources changent (rare).
+`web/assets/data/forets-domaniales.geojson` est versionné — relancer seulement si
+les sources changent. Pour **étendre la zone** : ajouter les codes dans
+`collect/config.mjs → departements`, relancer `fetch-departements` + les couches.
+Voir `SCALE.md` pour la France entière.
 
 ---
 

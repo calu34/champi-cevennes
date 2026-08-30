@@ -15,7 +15,7 @@ const DEPS = D.departements || ['07', '12', '30', '34', '48', '81'];
 const HAB = D.habitatOpts || { essence: true, substrat: true, mnt: true };
 const today = () => new Date().toLocaleDateString('sv-SE');
 const kToday = Math.max(0, D.days.indexOf(today()));
-const STATE = { species: 'auto', k: kToday, habitat: true, forets: true };
+const STATE = { species: 'auto', k: kToday, habitat: true, forets: true, brulis: true };
 const monthAt = k => +D.days[k].slice(5, 7);
 
 /* espèce effective : 'auto' → meilleure espèce en saison au jour affiché */
@@ -71,11 +71,36 @@ fetch('assets/data/forets-domaniales.geojson').then(r => r.ok ? r.json() : null)
   if (!fc) { $('foretsRow').style.display = 'none'; return; }
   for (const f of fc.features) {
     const b = L.geoJSON(f).getBounds();
+    f._c = b.getCenter();
     f._cell = cellAt(b.getCenter().lat, b.getCenter().lng);
   }
   foretLayer = L.geoJSON(fc, { style: { color: '#1b5e20', weight: 1, fillOpacity: 0.8 } });
+  loadBrulis();
   render();
 });
+
+/* --- brûlis (morilles) : bonus si une forêt recoupe un incendie récent --- */
+let brulisLayer = null, brulisPolys = [];
+const pir = (pt, ring) => {
+  let ins = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) ins = !ins;
+  }
+  return ins;
+};
+const inGeom = (pt, g) => g.type === 'Polygon' ? g.coordinates.some((r, i) => i === 0 ? pir(pt, r) : false)
+  : g.type === 'MultiPolygon' ? g.coordinates.some(p => pir(pt, p[0])) : false;
+function loadBrulis() {
+  fetch('assets/data/brulis.geojson').then(r => r.ok ? r.json() : null).then(fc => {
+    if (!fc || !fc.features.length) { $('brulisRow').style.display = 'none'; return; }
+    const yr = new Date().getFullYear();
+    brulisPolys = fc.features.filter(f => (f.properties?.annee ?? yr) >= yr - 2);
+    brulisLayer = L.geoJSON(fc, { style: { color: '#b71c1c', weight: 1, fillColor: '#ff7043', fillOpacity: 0.4, dashArray: '3' } });
+    render();
+  });
+}
+const brulisBonus = f => (f._c && brulisPolys.some(b => inGeom([f._c.lng, f._c.lat], b.geometry))) ? 2.2 : 1;
 
 /* --- rendu --- */
 const ESS = { feuillu: 'feuillus (chêne/châtaignier/hêtre)', conifere: 'conifères', mixte: 'mixte', autre: 'lande / ouvert' };
@@ -115,16 +140,22 @@ function render() {
     ).addTo(gridLayer);
   }
 
+  if (brulisLayer) {
+    const on = STATE.brulis && (STATE.species === 'morille' || (STATE.species === 'auto' && monthAt(k) <= 6));
+    if (on) brulisLayer.addTo(map); else map.removeLayer(brulisLayer);
+  }
+
   if (foretLayer) {
     if (STATE.forets) foretLayer.addTo(map); else map.removeLayer(foretLayer);
     foretLayer.eachLayer(lyr => {
       const p = lyr.feature.properties, c = lyr.feature._cell;
       const b = c ? bestScore(ids, c.s, k) : null;
-      let hf = 1, af = 1;
+      let hf = 1, af = 1, bru = 1;
       if (STATE.habitat && b?.id) {
         hf = habitatFactor(b.id, p, HAB);
         af = expositionFactor(b.id, p.aspect, b.r?.detail?.dry);
         hf *= af;
+        if (b.id === 'morille' && STATE.brulis) { bru = brulisBonus(lyr.feature); hf *= bru; }
       }
       const v = b ? b.value * hf : 0;
       lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.82 });
@@ -133,7 +164,7 @@ function render() {
         `<br>${p.elev} m · pente ${p.slopeDeg ?? '?'}° · expo ${p.aspect != null ? DIRS[Math.round(p.aspect / 45) % 8] : '?'}` +
         `<br>${ESS[p.essence] || '—'} · substrat ${SUB[p.substrat] || '—'}` +
         (b ? `<br><b>${b.id ? SPECIES[b.id].nom : '—'} : ${v.toFixed(0)}</b>` +
-          (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''})` : '')
+          (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''}${bru !== 1 ? ', brûlis ×2.2' : ''})` : '')
           : '<br>hors grille météo'));
     });
   }
@@ -154,6 +185,7 @@ sl.min = 20; sl.max = D.days.length - 1; sl.value = STATE.k;
 sl.addEventListener('input', e => { STATE.k = +e.target.value; render(); });
 $('habitat').addEventListener('change', e => { STATE.habitat = e.target.checked; render(); });
 $('forets').addEventListener('change', e => { STATE.forets = e.target.checked; render(); });
+$('brulis').addEventListener('change', e => { STATE.brulis = e.target.checked; render(); });
 
 const help = $('help');
 function buildHelp() {
