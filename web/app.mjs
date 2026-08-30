@@ -1,24 +1,40 @@
-/* Carte V1 — lit web/data.js (généré par le collecteur), aucun appel d'API. */
-import { deriveSeries, scoreAt, colorFor, habitatFactor, clamp, DEFAULTS } from './model.mjs';
+/* Carte — lit web/data.js (généré par le collecteur), aucun appel d'API.
+ * Multi-espèces : voir model/species/. */
+import {
+  deriveSeries, scoreSpecies, habitatFactor, expositionFactor, colorFor,
+  SPECIES, SPECIES_LIST, enSaison,
+} from './model/model.mjs';
 
 const D = window.CHAMPI;
 const $ = id => document.getElementById(id);
+if (!D) { $('status').textContent = "Pas de données : lance node collect/run.mjs puis recharge."; throw new Error('window.CHAMPI absent'); }
 
-if (!D) {
-  $('status').textContent =
-    "Pas de données : lance le collecteur (node collect/run.mjs) puis recharge.";
-  throw new Error('window.CHAMPI absent');
-}
+for (const c of D.cells) { c.s = { time: D.days, ...c.series }; deriveSeries(c.s); }
 
-for (const c of D.cells) {
-  c.s = { time: D.days, ...c.series };
-  deriveSeries(c.s, DEFAULTS);
-}
+const DEPS = D.departements || ['07', '12', '30', '34', '48', '81'];
+const HAB = D.habitatOpts || { essence: true, substrat: true, mnt: true };
 const today = () => new Date().toLocaleDateString('sv-SE');
 const kToday = Math.max(0, D.days.indexOf(today()));
-const STATE = { layer: 'combine', k: kToday, habitat: true, forets: true };
+const STATE = { species: 'auto', k: kToday, habitat: true, forets: true };
+const monthAt = k => +D.days[k].slice(5, 7);
 
-/* --- grille : retrouver la maille d'un point --- */
+/* espèce effective : 'auto' → meilleure espèce en saison au jour affiché */
+function speciesFor(k) {
+  if (STATE.species !== 'auto') return STATE.species;
+  const m = monthAt(k);
+  const inSeason = SPECIES_LIST.filter(sp => sp.saison.includes(m));
+  return (inSeason.length ? inSeason : SPECIES_LIST).map(s => s.id);
+}
+function bestScore(ids, s, k) {
+  let best = { value: 0, id: null, r: null };
+  for (const id of [].concat(ids)) {
+    const r = scoreSpecies(id, s, k);
+    if ((r.value ?? 0) >= best.value) best = { value: r.value ?? 0, id, r };
+  }
+  return best;
+}
+
+/* --- grille --- */
 const half = D.gridStep / 2;
 function cellAt(lat, lon) {
   let best = null, bd = Infinity;
@@ -29,10 +45,11 @@ function cellAt(lat, lon) {
   }
   return bd < (2 * D.gridStep) ** 2 ? best : null;
 }
-function cellScore(c, k) {
-  const sc = scoreAt(c.s, k, DEFAULTS);
-  const hf = STATE.habitat ? habitatFactor(c.habitat, D.habitatOpts) : 1;
-  return { ...sc, hf, shown: sc[STATE.layer] * hf };
+/* score affiché d'une maille (météo × altitude) */
+function cellShown(c, k) {
+  const b = bestScore(speciesFor(k), c.s, k);
+  const hf = STATE.habitat && b.id ? habitatFactor(b.id, { elev: c.elev }, { mnt: true }) : 1;
+  return { ...b, hf, v: b.value * hf };
 }
 
 /* --- carte --- */
@@ -42,12 +59,10 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 addEventListener('resize', () => map.invalidateSize());
 setTimeout(() => map.invalidateSize(), 200);
 
-Promise.all(['07', '12', '30', '34', '48', '81'].map(c =>
-  fetch(`assets/data/dep-${c}.geojson`).then(r => r.json()).catch(() => null)
-)).then(fs => {
-  L.geoJSON({ type: 'FeatureCollection', features: fs.filter(Boolean).map(f => ({ type: 'Feature', geometry: f.geometry })) },
-    { style: { color: '#444', weight: 1.2, fill: false } }).addTo(map);
-});
+Promise.all(DEPS.map(c => fetch(`assets/data/dep-${c}.geojson`).then(r => r.json()).catch(() => null)))
+  .then(fs => L.geoJSON(
+    { type: 'FeatureCollection', features: fs.filter(Boolean).map(f => ({ type: 'Feature', geometry: f.geometry })) },
+    { style: { color: '#444', weight: 1.2, fill: false } }).addTo(map));
 
 const gridLayer = L.layerGroup().addTo(map);
 let foretLayer = null;
@@ -58,84 +73,106 @@ fetch('assets/data/forets-domaniales.geojson').then(r => r.ok ? r.json() : null)
     const b = L.geoJSON(f).getBounds();
     f._cell = cellAt(b.getCenter().lat, b.getCenter().lng);
   }
-  foretLayer = L.geoJSON(fc, {
-    style: { color: '#1b5e20', weight: 1, fillOpacity: 0.75 },
-    onEachFeature: (f, lyr) => lyr.bindPopup(`<b>${f.properties.nom}</b> (${f.properties.dep})`),
-  });
+  foretLayer = L.geoJSON(fc, { style: { color: '#1b5e20', weight: 1, fillOpacity: 0.8 } });
   render();
 });
 
+/* --- rendu --- */
+const ESS = { feuillu: 'feuillus (chêne/châtaignier/hêtre)', conifere: 'conifères', mixte: 'mixte', autre: 'lande / ouvert' };
+const SUB = { acide: 'acide', neutre: 'neutre', calcaire: 'calcaire (causse)' };
+const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+const LBL = {
+  P7: 'pluie 7 j', P15: 'pluie 15 j', P21: 'pluie 21 j', P30: 'pluie 30 j',
+  Pevent: 'épisode 48 h', Devent: 'il y a (j)', Tsol: 'T° sol', dTsol: 'Δ T° sol 10 j',
+  SM: 'humidité sol', ET7: 'ET0 7 j', Tmin7: 'T° min 7 j', dry: 'série sèche (j)',
+  Psummer: 'pluie été (mm)', nOrages: 'orages été', nEvents: 'orages été', trouSec: 'trou sec (j)',
+  joursChauds: 'jours > 33 °C', couverture: 'couverture (j)',
+  rechauffement: 'réchauffement 14 j (°C)', amplitude: 'amplitude j/nuit (°C)',
+};
+const fmtDetail = d => Object.entries(d).filter(([k]) => LBL[k])
+  .map(([k, v]) => `${LBL[k]} : ${typeof v === 'number' ? (Math.abs(v) < 2 && k === 'SM' ? (v * 100).toFixed(0) + ' %' : v.toFixed(v % 1 ? 1 : 0)) : v}`)
+  .join(' · ');
+
 function render() {
-  const k = STATE.k;
+  const k = STATE.k, m = monthAt(k), ids = speciesFor(k);
+  const spLabel = STATE.species === 'auto'
+    ? 'meilleur du moment' + (SPECIES_LIST.some(s => s.saison.includes(m)) ? '' : ' (hors saison)')
+    : SPECIES[STATE.species].nom + (enSaison(STATE.species, m) ? '' : ' — hors saison');
 
   gridLayer.clearLayers();
   const foretsOn = STATE.forets && foretLayer;
-  const gridOp = foretsOn ? 0.18 : 1;
+  const gridOp = foretsOn ? 0.16 : 1;
   for (const c of D.cells) {
-    const s = cellScore(c, k), d = s.detail;
+    const r = cellShown(c, k);
     L.rectangle([[c.lat - half, c.lon - half], [c.lat + half, c.lon + half]], {
-      stroke: false, interactive: !foretsOn, fillColor: colorFor(s.shown),
-      fillOpacity: (0.4 + 0.35 * Math.abs(s.shown - 50) / 50) * gridOp,
+      stroke: false, interactive: !foretsOn, fillColor: colorFor(r.v),
+      fillOpacity: (0.4 + 0.35 * Math.abs(r.v - 50) / 50) * gridOp,
     }).bindPopup(
       `<b>${c.dep} — ${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}</b> · ${c.elev} m` +
-      `<br><b>Cèpe ${s.cepe.toFixed(0)} · Girolle ${s.girolle.toFixed(0)}</b>` +
-      (STATE.habitat ? `<br>habitat ×${s.hf.toFixed(2)} → ${s.shown.toFixed(0)}` : '') +
-      `<hr style="margin:4px 0">` +
-      `Pluie 7/15/21/30 j : ${d.P7.toFixed(0)}/${d.P15.toFixed(0)}/${d.P21.toFixed(0)}/${d.P30.toFixed(0)} mm` +
-      `<br>Épisode 48 h (21 j) : ${d.Pevent.toFixed(0)} mm il y a ${d.Devent} j` +
-      `<br>T° sol ≈ ${d.Tsol.toFixed(1)} °C (Δ10j ${d.dTsol >= 0 ? '+' : ''}${d.dTsol.toFixed(1)})` +
-      `<br>Humidité sol ${(d.SM * 100).toFixed(0)} % · série sèche ${d.dry} j`
+      `<br><b>${r.id ? SPECIES[r.id].nom : '—'} : ${r.v.toFixed(0)}</b>` +
+      (r.hf !== 1 ? ` (altitude ×${r.hf.toFixed(2)})` : '') +
+      (r.r?.detail ? `<hr style="margin:4px 0">${fmtDetail(r.r.detail)}` : '')
     ).addTo(gridLayer);
   }
 
   if (foretLayer) {
     if (STATE.forets) foretLayer.addTo(map); else map.removeLayer(foretLayer);
-    const ESS = { feuillu: 'feuillus (chêne/châtaignier/hêtre)', conifere: 'conifères (pins, sapin…)', mixte: 'mixte', autre: 'lande / forêt ouverte' };
-    const SUB = { acide: 'acide (schiste, granite…)', neutre: 'neutre', calcaire: 'calcaire (causse)' };
-    const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
     foretLayer.eachLayer(lyr => {
       const p = lyr.feature.properties, c = lyr.feature._cell;
-      const sc = c ? cellScore(c, k) : null;
-      let hf = STATE.habitat
-        ? habitatFactor({ essence: p.essence, substrat: p.substrat, elev: p.elev, slopeDeg: p.slopeDeg },
-          { useForet: true, useSubstrat: true, useMnt: true }) : 1;
-      // exposition : en période sèche l'ubac (versant Nord) garde l'humidité
-      let af = 1;
-      if (STATE.habitat && p.aspect != null && sc) {
-        const ubac = Math.cos(p.aspect * Math.PI / 180);          // +1 Nord … -1 Sud
-        const dryness = clamp((sc.detail.dry - 8) / 15, 0, 1);
-        af = 1 + 0.18 * ubac * dryness;
+      const b = c ? bestScore(ids, c.s, k) : null;
+      let hf = 1, af = 1;
+      if (STATE.habitat && b?.id) {
+        hf = habitatFactor(b.id, p, HAB);
+        af = expositionFactor(b.id, p.aspect, b.r?.detail?.dry);
         hf *= af;
       }
-      const v = sc ? sc[STATE.layer] * hf : 0;
+      const v = b ? b.value * hf : 0;
       lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.82 });
-      lyr.setPopupContent(`<b>${p.nom}</b> (${p.dep})` +
+      lyr.setPopupContent(
+        `<b>${p.nom}</b> (${p.dep})` +
         `<br>${p.elev} m · pente ${p.slopeDeg ?? '?'}° · expo ${p.aspect != null ? DIRS[Math.round(p.aspect / 45) % 8] : '?'}` +
-        `<br>peuplement : ${ESS[p.essence] || '—'} · substrat : ${SUB[p.substrat] || '—'}` +
-        (sc ? `<br><b>Cèpe ${(sc.cepe * hf).toFixed(0)} · Girolle ${(sc.girolle * hf).toFixed(0)}</b>` +
-          (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''})` : '') : '<br>hors grille météo'));
+        `<br>${ESS[p.essence] || '—'} · substrat ${SUB[p.substrat] || '—'}` +
+        (b ? `<br><b>${b.id ? SPECIES[b.id].nom : '—'} : ${v.toFixed(0)}</b>` +
+          (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''})` : '')
+          : '<br>hors grille météo'));
     });
   }
 
   const t = D.days[k];
-  $('dateLbl').textContent = `${t}${t > today() ? ' (prévision)' : ''}`;
+  $('dateLbl').textContent = `${t}${t > today() ? ' (prév.)' : ''} — ${spLabel}`;
 }
 
 /* --- UI --- */
+const sel = $('species');
+sel.innerHTML = `<option value="auto">Auto (meilleur du moment)</option>` +
+  SPECIES_LIST.map(s => `<option value="${s.id}">${s.nom}</option>`).join('');
+sel.value = STATE.species;
+sel.addEventListener('change', e => { STATE.species = e.target.value; buildHelp(); render(); });
+
 const sl = $('dateSlider');
 sl.min = 20; sl.max = D.days.length - 1; sl.value = STATE.k;
 sl.addEventListener('input', e => { STATE.k = +e.target.value; render(); });
-document.querySelectorAll('input[name=layer]').forEach(el =>
-  el.addEventListener('change', e => { STATE.layer = e.target.value; render(); }));
 $('habitat').addEventListener('change', e => { STATE.habitat = e.target.checked; render(); });
 $('forets').addEventListener('change', e => { STATE.forets = e.target.checked; render(); });
 
 const help = $('help');
-$('helpBtn').addEventListener('click', () => help.hidden = false);
+function buildHelp() {
+  const list = STATE.species === 'auto' ? SPECIES_LIST : [SPECIES[STATE.species]];
+  $('helpBody').innerHTML = list.map(sp =>
+    `<h3>${sp.nom} <span class="sub">— ${sp.groupe} · saison ${sp.saison.join('·')}</span></h3>` +
+    `<ul>${sp.criteres.map(([n, t]) => `<li><b>${n}</b> : ${t}</li>`).join('')}</ul>`
+  ).join('') +
+    `<h3>Filtre habitat <span class="sub">(couche forêts)</span></h3>` +
+    `<p class="sub">essence × substrat × altitude/pente × exposition (ubac +18 % en période sèche). ` +
+    `Facteurs propres à chaque espèce — voir <code>model/species/</code>.</p>` +
+    `<p class="sub">Pluie : lame d'eau radar Météo-France 1 km (+ proxy Open-Meteo ~9 km pour les jours incomplets). ` +
+    `Modèle v1, seuils à caler sur observations réelles (GBIF / iNaturalist).</p>`;
+}
+$('helpBtn').addEventListener('click', () => { buildHelp(); help.hidden = false; });
 $('helpClose').addEventListener('click', () => help.hidden = true);
 help.addEventListener('click', e => { if (e.target === help) help.hidden = true; });
 addEventListener('keydown', e => { if (e.key === 'Escape') help.hidden = true; });
 
-$('status').textContent =
-  `${D.cells.length} mailles · source ${D.source} · généré ${new Date(D.generated).toLocaleString('fr-FR')}`;
+$('status').textContent = `${D.cells.length} mailles · ${D.source} · ${new Date(D.generated).toLocaleString('fr-FR')}`;
+buildHelp();
 render();

@@ -39,12 +39,23 @@ export function loadDeps(rootDir) {
   return deps;
 }
 
-/** grille de points {id,lat,lon,dep} masquée aux 6 départements */
+/** emprise (bbox) = union des géométries départements */
+export function depsBbox(deps) {
+  let latMin = 90, latMax = -90, lonMin = 180, lonMax = -180;
+  const walk = c => Array.isArray(c[0]) ? c.forEach(walk)
+    : (lonMin = Math.min(lonMin, c[0]), lonMax = Math.max(lonMax, c[0]),
+       latMin = Math.min(latMin, c[1]), latMax = Math.max(latMax, c[1]));
+  for (const d of Object.values(deps)) walk(d.geometry.coordinates);
+  return { latMin, latMax, lonMin, lonMax };
+}
+
+/** grille de points {id,lat,lon,dep} masquée aux départements de CFG */
 export function buildGrid(deps) {
-  const { bbox, gridStep: st } = CFG;
+  const st = CFG.gridStep;
+  const bb = depsBbox(deps);
   const pts = [];
-  for (let la = bbox.latMin; la <= bbox.latMax; la += st)
-    for (let lo = bbox.lonMin; lo <= bbox.lonMax; lo += st) {
+  for (let la = bb.latMin; la <= bb.latMax; la += st)
+    for (let lo = bb.lonMin; lo <= bb.lonMax; lo += st) {
       const lat = +la.toFixed(4), lon = +lo.toFixed(4);
       let dep = null;
       for (const c of CFG.departements)

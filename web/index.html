@@ -10,12 +10,8 @@
 <body>
 <div id="panel">
   <h1>Conditions de pousse <button id="helpBtn" title="Comment l'indice est calculé">?</button></h1>
-  <p class="sub">Cèpes &amp; girolles — 34 · 30 · 48 · 12 · 07 · 81. V1.</p>
-  <fieldset>
-    <label><input type="radio" name="layer" value="combine" checked> Combiné</label>
-    <label><input type="radio" name="layer" value="cepe"> Cèpe</label>
-    <label><input type="radio" name="layer" value="girolle"> Girolle</label>
-  </fieldset>
+  <p class="sub">Cévennes &amp; Sud-Massif central — 34 · 30 · 48 · 12 · 07 · 81.</p>
+  <div class="row"><span>Espèce&nbsp;:</span> <select id="species"></select></div>
   <label id="foretsRow"><input type="checkbox" id="forets" checked> Forêts domaniales (ONF)</label>
   <label><input type="checkbox" id="habitat" checked> Filtre habitat</label>
   <div class="row"><span>Jour&nbsp;:</span> <span id="dateLbl">—</span></div>
@@ -35,36 +31,7 @@
     <h2>Comment l'indice est calculé</h2>
     <p class="sub">Indice 0–100 par zone. <b>Vert = conditions réunies.</b>
       Détail complet : <code>MODELE.md</code> dans le dépôt.</p>
-
-    <h3>Cèpe — <span class="sub">pousse 10–20 j après une vraie pluie</span></h3>
-    <ul>
-      <li><b>Pluie déclenchante</b> : meilleur cumul sur 48 h des 21 derniers jours. Nul sous 20 mm, plein à 60 mm.</li>
-      <li><b>Délai</b> : optimal 10–20 j après cet épisode (pic à 14 j), s'effondre après ~1 mois.</li>
-      <li><b>Humidité entretenue</b> : pluie des 15 j (30 → 80 mm) — une pluie unique suivie de sec = avortement.</li>
-      <li><b>Température du sol</b> (proxy) : favorable 13–19 °C, nul hors 8–22 °C.</li>
-      <li><b>Choc thermique</b> : une baisse de 2–6 °C sur 10 j donne un bonus.</li>
-      <li><b>Pénalités</b> : gel, semaine très évaporante, canicule juste avant l'épisode.</li>
-    </ul>
-
-    <h3>Girolle — <span class="sub">humidité régulière plutôt qu'un coup de pluie</span></h3>
-    <ul>
-      <li><b>Humidité de fond</b> : pluie des 30 j (40 → 110 mm).</li>
-      <li><b>Série sèche</b> : pénalisée dès 12 j sans pluie, forte à 25 j.</li>
-      <li><b>Température du sol</b> : bande plus large et plus chaude (12–20 °C) — sort dès l'été.</li>
-      <li>Pas de choc thermique, tolère mieux la chaleur que le cèpe.</li>
-    </ul>
-
-    <h3>Filtre habitat <span class="sub">(couche forêts domaniales)</span></h3>
-    <p>Multiplie l'indice météo :</p>
-    <ul>
-      <li><b>Essence</b> (BD Forêt) : feuillu ×1 · mixte ×0.95 · conifère ×0.85 · lande ×0.35</li>
-      <li><b>Substrat</b> (BRGM) : acide ×1 · neutre ×0.8 · <b>calcaire ×0.25</b></li>
-      <li><b>Altitude / pente</b> : atténué hors 200–1650 m ou pente &gt; 30°</li>
-      <li><b>Exposition</b> : en période sèche, versant Nord (ubac) +18 %, Sud −18 %</li>
-    </ul>
-
-    <p class="sub">Données pluie : lame d'eau radar Météo-France 1 km (proxy Open-Meteo ~9 km
-      pour les jours pas encore complets). Modèle v1, seuils à caler sur observations réelles.</p>
+    <div id="helpBody"></div>
   </div>
 </div>
 

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { CFG } from './config.mjs';
 import { loadDeps, buildGrid, todayISO, isoAdd, readJSON, writeJSON } from './lib.mjs';
 import { fetchProxy } from './openmeteo.mjs';
-import { deriveSeries, scoreAt } from '../model/model.mjs';
+import { deriveSeries, scoreSpecies, SPECIES_LIST } from '../model/model.mjs';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
 const R = p => path.join(ROOT, p);
@@ -74,25 +74,24 @@ async function main() {
   writeJSON(R(CFG.paths.store + '/series.json'),
     { updated: new Date().toISOString(), source, days, points: series });
 
-  // 4. habitat : rattacher chaque maille à sa parcelle enrichie (si dispo)
-  const parcels = readJSON(R(CFG.paths.parcels), null);
-  const habOpts = CFG.habitat;
-  for (const p of grid) {
-    const s = series[p.id]; if (!s) continue;
-    s.habitat = habitatFor(p, s.elev, parcels);
-  }
+  // 4. habitat de maille : seule l'altitude (l'enrichissement essence/substrat/MNT
+  //    est porté par la couche forêts, côté carte — voir geo/).
+  for (const p of grid) { const s = series[p.id]; if (s) s.habitat = { elev: s.elev }; }
 
-  // 5. contrôle : indices au dernier jour observé
+  // 5. contrôle : indices au dernier jour observé, par espèce
   const kToday = days.indexOf(todayISO());
-  let favC = 0, favG = 0;
-  for (const id of Object.keys(series)) {
-    const s = series[id];
-    deriveSeries(s, CFG.model);
-    const sc = scoreAt(s, kToday >= 0 ? kToday : days.length - 1, CFG.model);
-    if (sc.cepe > 40) favC++;
-    if (sc.girolle > 40) favG++;
+  const kEval = kToday >= 0 ? kToday : days.length - 1;
+  const fav = {};
+  for (const s of Object.values(series)) deriveSeries(s);
+  for (const sp of SPECIES_LIST) {
+    let n = 0;
+    for (const s of Object.values(series)) if ((scoreSpecies(sp.id, s, kEval).value ?? 0) > 40) n++;
+    fav[sp.nom] = n;
   }
-  log(`au ${todayISO()} : ${favC} mailles cèpe>40, ${favG} girolle>40`);
+  log(`au ${todayISO()} — mailles > 40 : ` + Object.entries(fav).map(([k, v]) => `${k} ${v}`).join(', '));
+
+  // 5b. garder web/model/ synchro avec model/ (la carte importe web/model/model.mjs)
+  fs.cpSync(R('model'), R('web/model'), { recursive: true });
 
   // 6. sortie web
   const cells = Object.entries(series).map(([id, s]) => ({
@@ -101,21 +100,12 @@ async function main() {
   }));
   const js = 'window.CHAMPI=' + JSON.stringify({
     generated: new Date().toISOString(),
-    source, days, gridStep: CFG.gridStep, habitatOpts: habOpts, cells,
+    source, days, gridStep: CFG.gridStep, departements: CFG.departements,
+    habitatOpts: CFG.habitat, cells,
   }) + ';\n';
   fs.mkdirSync(path.dirname(R(CFG.paths.webData)), { recursive: true });
   fs.writeFileSync(R(CFG.paths.webData), js);
   log(`écrit ${CFG.paths.webData} (${(js.length / 1024).toFixed(0)} Ko, ${cells.length} mailles)`);
-}
-
-/* place-holder tant que la phase GIS n'est pas faite : seule l'altitude est connue */
-function habitatFor(pt, elev, parcels) {
-  const h = { elev, forest: null, essence: null, domaniale: null, substrat: null,
-              slopeDeg: null, aspect: null, parcel: null };
-  if (parcels?.features) {
-    // TODO: point-in-polygon sur les parcelles ONF enrichies (phase habitat)
-  }
-  return h;
 }
 
 main().catch(e => { console.error('ÉCHEC:', e.message); process.exit(1); });

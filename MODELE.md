@@ -1,10 +1,25 @@
 # Modèle « conditions de pousse »
 
-Tous les seuils sont dans **`model/model.mjs` → `DEFAULTS`**. Modifie, relance
-`node collect/run.mjs`, recharge la carte.
+## Structure
 
-L'indice final d'une **maille** = `indice météo (0–100)`.
-L'indice d'une **forêt domaniale** = `indice météo de sa maille × facteur habitat`.
+- **`model/lib.mjs`** — primitives (clamp, trap, séries dérivées, couleurs…)
+- **`model/species/<id>.mjs`** — un module par espèce : `id, nom, saison, fenetreJours,
+  habitat, params, score(série, k), criteres`
+- **`model/species/index.mjs`** — catalogue. Ajouter une espèce = 1 fichier + 1 import.
+- **`model/model.mjs`** — API : `scoreSpecies(id, s, k)`, `habitatFactor(id, h, opts)`,
+  `expositionFactor(...)`
+
+Espèces : **cèpe**, **girolle**, **truffe noire**, **morille**. Seuils dans chaque
+`model/species/<id>.mjs` → `params`. Modifie, relance `node collect/run.mjs`.
+
+L'indice d'une **maille** = `score météo × facteur altitude`.
+L'indice d'une **forêt domaniale** = `score météo × facteur habitat (essence × substrat
+× altitude/pente × exposition)`, **propre à l'espèce** (le calcaire favorise la truffe
+et pénalise le cèpe, etc.).
+
+> `model/model.mjs` était un fichier unique jusqu'en v1 ; sections cèpe/girolle
+> ci-dessous conservées pour référence, désormais dans `model/species/cepe.mjs` et
+> `girolle.mjs`. Truffe et morille : voir le panneau « ? » de la carte.
 
 ---
 
