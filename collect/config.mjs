@@ -15,8 +15,8 @@ export const CFG = {
   // ~30 000 pts sur la France → passer en radar-seul + grille météo grossière.
   gridStep: +(process.env.CHAMPI_GRIDSTEP || 0.11),
 
-  window: 75,          // jours d'historique glissant conservés
   forecastDays: 3,     // jours de prévision (source proxy)
+  // l'historique complet est dans data/archive/<mois>.json (append-only, illimité)
 
   source: process.env.CHAMPI_SOURCE || 'proxy',   // 'proxy' | 'antilope'
 

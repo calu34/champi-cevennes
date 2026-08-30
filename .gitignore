@@ -1,5 +1,6 @@
 node_modules/
 data/store/
+data/archive/
 data/habitat/
 data/*.log
 web/data.js

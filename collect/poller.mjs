@@ -74,7 +74,8 @@ async function main() {
     writeJSON(file, acc);
     log(`${date} ${bucket.slice(8)} · ${acc.buckets.length}/288 créneaux · ${wet} mailles pluie (max ${maxmm.toFixed(2)} mm/5min) · ${nodataCells} sans couverture`);
 
-    const keep = new Date(Date.now() - (CFG.window + 4) * 86400000).toISOString().slice(0, 10);
+    // on garde ~2 ans d'accumulateurs radar (l'archive météo, elle, est illimitée)
+    const keep = new Date(Date.now() - 750 * 86400000).toISOString().slice(0, 10);
     for (const f of fs.readdirSync(RADAR_DIR))
       if (f.endsWith('.json') && f.slice(0, 10) < keep) fs.unlinkSync(path.join(RADAR_DIR, f));
   } finally {
