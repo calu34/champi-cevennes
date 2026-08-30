@@ -25,30 +25,38 @@ console.log(`${grid.length} mailles · ${start} → ${end}`);
 const ids = grid.map(p => p.id);
 const need = missingDays(ids, start, end);
 if (!need.length) { console.log('déjà complet'); process.exit(0); }
-console.log(`${need.length} jours à récupérer`);
+console.log(`${need.length} jours à récupérer — par année, lots de 40 mailles`);
+const BATCH = 40;
 
-for (let i = 0; i < grid.length; i += 80) {
-  const chunk = grid.slice(i, i + 80);
-  const lat = chunk.map(p => p.lat).join(','), lon = chunk.map(p => p.lon).join(',');
-  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
-    `&daily=${DAILY}&start_date=${start}&end_date=${end}&timezone=Europe%2FParis`;
-  let arr;
-  for (let a = 0; a < 5; a++) {
-    try {
-      const j = await (await fetch(url)).json();
-      if (j?.error) { if (/limit/i.test(j.reason)) { await sleep(62000); continue; } throw new Error(j.reason); }
-      arr = Array.isArray(j) ? j : [j]; break;
-    } catch (e) { if (a === 4) throw e; await sleep(5000); }
+for (let yr = y0; yr <= y1; yr++) {
+  const a = `${yr}-01-01`, b = yr === y1 && end < `${yr}-12-31` ? end : `${yr}-12-31`;
+  for (let i = 0; i < grid.length; i += BATCH) {
+    const chunk = grid.slice(i, i + BATCH);
+    const lat = chunk.map(p => p.lat).join(','), lon = chunk.map(p => p.lon).join(',');
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
+      `&daily=${DAILY}&start_date=${a}&end_date=${b}&timezone=Europe%2FParis`;
+    let arr;
+    for (let k = 0; k < 6; k++) {
+      try {
+        const j = await (await fetch(url)).json();
+        if (j?.error) {
+          if (/limit/i.test(j.reason)) { await sleep(62000); continue; }
+          if (/too much data/i.test(j.reason) && chunk.length > 10) { throw Object.assign(new Error('split'), { split: true }); }
+          throw new Error(j.reason);
+        }
+        arr = Array.isArray(j) ? j : [j]; break;
+      } catch (e) { if (e.split || k === 5) throw e; await sleep(4000); }
+    }
+    const obs = {};
+    chunk.forEach((p, idx) => {
+      const o = arr[idx]; if (!o?.daily) return;
+      obs[p.id] = { lat: p.lat, lon: p.lon, dep: p.dep, elev: Math.round(o.elevation), time: o.daily.time };
+      VARS.forEach((v, vi) => obs[p.id][v] = o.daily[KEYS[vi]]);
+    });
+    append(obs);
+    process.stdout.write(`\r  ${yr} · ${Math.min(i + BATCH, grid.length)}/${grid.length}   `);
+    await sleep(1200);
   }
-  const obs = {};
-  chunk.forEach((p, idx) => {
-    const o = arr[idx]; if (!o?.daily) return;
-    obs[p.id] = { lat: p.lat, lon: p.lon, dep: p.dep, elev: Math.round(o.elevation), time: o.daily.time };
-    VARS.forEach((v, vi) => obs[p.id][v] = o.daily[KEYS[vi]]);
-  });
-  append(obs);
-  process.stdout.write(`\r  ${Math.min(i + 80, grid.length)}/${grid.length}`);
-  await sleep(1500);
 }
 process.stdout.write('\n');
 const s = stats();
