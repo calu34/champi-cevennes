@@ -130,6 +130,12 @@ document.querySelectorAll('input[name=layer]').forEach(el =>
 $('habitat').addEventListener('change', e => { STATE.habitat = e.target.checked; render(); });
 $('forets').addEventListener('change', e => { STATE.forets = e.target.checked; render(); });
 
+const help = $('help');
+$('helpBtn').addEventListener('click', () => help.hidden = false);
+$('helpClose').addEventListener('click', () => help.hidden = true);
+help.addEventListener('click', e => { if (e.target === help) help.hidden = true; });
+addEventListener('keydown', e => { if (e.key === 'Escape') help.hidden = true; });
+
 $('status').textContent =
   `${D.cells.length} mailles · source ${D.source} · généré ${new Date(D.generated).toLocaleString('fr-FR')}`;
 render();

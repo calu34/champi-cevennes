@@ -17,3 +17,20 @@ html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,Segoe UI,Ro
   rgb(254,224,139),rgb(217,239,139),rgb(145,207,96),rgb(26,152,80))}
 #legend .lab{display:flex;justify-content:space-between;color:#555}
 .leaflet-popup-content{font-size:12px;line-height:1.45}
+
+#helpBtn{float:right;width:20px;height:20px;line-height:18px;padding:0;border:1px solid #999;
+  border-radius:50%;background:#f4f4f4;cursor:pointer;font-weight:700;font-size:12px}
+#helpBtn:hover{background:#e6e6e6}
+#help{position:absolute;inset:0;z-index:2000;background:rgba(0,0,0,.35);
+  display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px}
+#help[hidden]{display:none}
+#help .card{background:#fff;border-radius:10px;padding:18px 22px;max-width:520px;
+  box-shadow:0 6px 30px rgba(0,0,0,.3);position:relative;font-size:13px;line-height:1.5}
+#help h2{font-size:16px;margin:0 0 4px}
+#help h3{font-size:13.5px;margin:14px 0 4px}
+#help ul{margin:4px 0;padding-left:18px}
+#help li{margin:3px 0}
+#help .sub{color:#666;font-weight:400}
+#helpClose{position:absolute;top:8px;right:12px;border:0;background:none;font-size:22px;
+  line-height:1;cursor:pointer;color:#888}
+#helpClose:hover{color:#333}
