@@ -1,0 +1,10 @@
+[Unit]
+Description=Champi-Cevennes - declenche le poller radar toutes les 3 min
+
+[Timer]
+OnCalendar=*:0/3
+RandomizedDelaySec=20
+Persistent=false
+
+[Install]
+WantedBy=timers.target

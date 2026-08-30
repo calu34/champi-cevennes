@@ -1,0 +1,27 @@
+<div id="panel">
+  <h1>Conditions de pousse</h1>
+  <p class="sub">Cèpes &amp; girolles — Hérault, Gard, Lozère, Aveyron, Ardèche, Tarn. Modèle v0.</p>
+  <fieldset>
+    <label><input type="radio" name="layer" value="combine" checked> Combiné (cèpe ou girolle)</label>
+    <label><input type="radio" name="layer" value="cepe"> Cèpe</label>
+    <label><input type="radio" name="layer" value="girolle"> Girolle</label>
+  </fieldset>
+  <label><input type="checkbox" id="habitat" checked> Filtre habitat (altitude, provisoire)</label>
+  <div class="row">
+    <label>Analyse au&nbsp;: <input type="date" id="anchorDate"></label>
+  </div>
+  <p class="sub" style="margin:-4px 0 6px">Aujourd'hui = temps réel + prévision. Date passée = rejeu (archive ERA5) pour caler le modèle.</p>
+  <div class="row">
+    <span>Jour affiché&nbsp;:</span><span id="dateLbl">—</span>
+  </div>
+  <input type="range" id="dateSlider" min="25" max="76" value="74">
+  <button id="reload">Recharger les données</button>
+  <div id="status"></div>
+  <div><span id="count"></span> · <span id="updated"></span></div>
+</div>
+<div id="legend">
+  <div>Indice de conditions favorables</div>
+  <div class="bar"></div>
+  <div class="lab"><span>0 défavorable</span><span>100 réunies</span></div>
+</div>
+<div id="map"></div>

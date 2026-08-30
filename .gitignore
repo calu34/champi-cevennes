@@ -1,0 +1,6 @@
+node_modules/
+data/store/
+data/habitat/
+data/*.log
+web/data.js
+*.h5

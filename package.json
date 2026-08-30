@@ -1,0 +1,19 @@
+{
+  "name": "champi-cevennes",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Carte des conditions de pousse cèpes/girolles — 6 départements Cévennes",
+  "scripts": {
+    "collect": "node collect/run.mjs",
+    "poll": "node collect/poller.mjs",
+    "serve": "node collect/serve.mjs",
+    "inspect-h5": "node collect/inspect-h5.mjs",
+    "discover": "node collect/discover-radar.mjs"
+  },
+  "dependencies": {
+    "h5wasm": "^0.7.5",
+    "proj4": "^2.12.1"
+  },
+  "engines": { "node": ">=20" }
+}

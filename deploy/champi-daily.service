@@ -1,0 +1,11 @@
+[Unit]
+Description=Champi-Cevennes - collecte quotidienne + calcul de la carte
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=champi
+WorkingDirectory=/home/champi/champi-cevennes
+EnvironmentFile=/etc/champi.env
+ExecStart=/usr/bin/node collect/run.mjs

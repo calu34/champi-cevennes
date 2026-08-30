@@ -1,0 +1,12 @@
+[Unit]
+Description=Champi-Cevennes - poller lame d'eau radar (une passe)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=champi
+WorkingDirectory=/home/champi/champi-cevennes
+EnvironmentFile=/etc/champi.env
+ExecStart=/usr/bin/node collect/poller.mjs
+Nice=10

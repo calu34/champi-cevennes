@@ -1,0 +1,16 @@
+[Unit]
+Description=Champi-Cevennes - serveur de la carte
+After=network.target
+
+[Service]
+Type=simple
+User=champi
+WorkingDirectory=/home/champi/champi-cevennes
+Environment=HOST=127.0.0.1
+Environment=PORT=8123
+ExecStart=/usr/bin/node collect/serve.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
