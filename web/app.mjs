@@ -69,11 +69,12 @@ function render() {
   const k = STATE.k;
 
   gridLayer.clearLayers();
-  const gridOp = STATE.forets && foretLayer ? 0.18 : 1;
+  const foretsOn = STATE.forets && foretLayer;
+  const gridOp = foretsOn ? 0.18 : 1;
   for (const c of D.cells) {
     const s = cellScore(c, k), d = s.detail;
     L.rectangle([[c.lat - half, c.lon - half], [c.lat + half, c.lon + half]], {
-      stroke: false, fillColor: colorFor(s.shown),
+      stroke: false, interactive: !foretsOn, fillColor: colorFor(s.shown),
       fillOpacity: (0.4 + 0.35 * Math.abs(s.shown - 50) / 50) * gridOp,
     }).bindPopup(
       `<b>${c.dep} — ${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}</b> · ${c.elev} m` +
@@ -89,13 +90,17 @@ function render() {
 
   if (foretLayer) {
     if (STATE.forets) foretLayer.addTo(map); else map.removeLayer(foretLayer);
+    const ESS = { feuillu: 'feuillus (chêne/châtaignier/hêtre)', conifere: 'conifères (pins, sapin…)', mixte: 'mixte', autre: 'lande / forêt ouverte' };
     foretLayer.eachLayer(lyr => {
-      const c = lyr.feature._cell;
-      const v = c ? cellScore(c, k)[STATE.layer] : 0;   // score météo brut de la maille
-      lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.8 });
-      const p = lyr.feature.properties;
-      lyr.setPopupContent(`<b>${p.nom}</b> (${p.dep})<br>` +
-        (c ? `Cèpe ${cellScore(c, k).cepe.toFixed(0)} · Girolle ${cellScore(c, k).girolle.toFixed(0)}` : 'hors grille'));
+      const p = lyr.feature.properties, c = lyr.feature._cell;
+      const sc = c ? cellScore(c, k) : null;
+      const ef = STATE.habitat && p.essence ? habitatFactor({ essence: p.essence }, { useForet: true }) : 1;
+      const v = sc ? sc[STATE.layer] * ef : 0;
+      lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.82 });
+      lyr.setPopupContent(`<b>${p.nom}</b> (${p.dep})` +
+        `<br>peuplement : ${ESS[p.essence] || '—'}` +
+        (sc ? `<br><b>Cèpe ${(sc.cepe * ef).toFixed(0)} · Girolle ${(sc.girolle * ef).toFixed(0)}</b>` +
+          (ef !== 1 ? ` (essence ×${ef.toFixed(2)})` : '') : '<br>hors grille météo'));
     });
   }
 

@@ -7,9 +7,17 @@
   `cdom_frt='OUI'`), simplifie, écrit `web/assets/data/forets-domaniales.geojson`
   (versionné). La carte les affiche colorées par l'indice de la maille qui les
   contient, avec un interrupteur « Forêts domaniales ».
-- **H2 essence (BD Forêt V2)** — à faire
+- **H2 — essence dominante : FAIT.** `geo/fetch-bdforet.mjs` interroge BD Forêt V2
+  (WFS `LANDCOVER.FORESTINVENTORY.V2:formation_vegetale`) dans l'emprise de chaque
+  forêt, calcule la classe dominante (feuillu / conifere / mixte / autre) et l'ajoute
+  au geojson. Résultat 6 dépts : 22 feuillu, 50 conifere, 10 mixte, 8 autre — les
+  domaniales cévenoles sont surtout des reboisements RTM résineux. `habitatFactor`
+  applique feuillu ×1 / mixte ×0.95 / conifere ×0.85 / autre ×0.35 à la couche forêts.
 - **H3 substrat acide/calcaire (BRGM)** — à faire
 - **H4 pente/exposition (MNT)** — à faire (le filtre altitude actuel est un repli)
+
+> Note : l'essence n'est portée que par la couche **forêts**, pas par les mailles
+> de la grille (vue grille = filtre altitude seul).
 
 ---
 

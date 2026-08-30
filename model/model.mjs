@@ -134,19 +134,15 @@ export function scoreAt(s, k, cfg = DEFAULTS) {
 }
 
 /* ---------- habitat : combine les couches en un facteur 0..1 ---------- *
- * h = { forest:bool, essence:'feuillu_myco'|'conifere_myco'|'autre'|null,
+ * h = { forest:bool, essence:'feuillu'|'conifere'|'mixte'|'autre'|null,
  *       domaniale:bool, substrat:'acide'|'neutre'|'calcaire'|null,
  *       elev:m, slopeDeg:°, aspect:° (0=N,90=E) }                          */
+const ESSENCE_F = { feuillu: 1, mixte: 0.95, conifere: 0.85, autre: 0.35 };
 export function habitatFactor(h, opts = {}) {
   if (!h) return 1;
   let f = 1;
 
-  if (opts.useForet) {
-    if (h.forest === false) return 0;
-    if (h.essence === 'feuillu_myco' || h.essence === 'conifere_myco') f *= 1;
-    else if (h.essence === 'autre') f *= 0.5;
-    // essence inconnue → neutre
-  }
+  if (opts.useForet && h.essence) f *= ESSENCE_F[h.essence] ?? 0.7;
   if (opts.useDomaniale && h.domaniale === false) f *= 0.15;   // hors domaniale : très atténué
   if (opts.useSubstrat) {
     if (h.substrat === 'calcaire') f *= 0.25;
