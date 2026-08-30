@@ -35,18 +35,28 @@ for (let yr = y0; yr <= y1; yr++) {
     const lat = chunk.map(p => p.lat).join(','), lon = chunk.map(p => p.lon).join(',');
     const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
       `&daily=${DAILY}&start_date=${a}&end_date=${b}&timezone=Europe%2FParis`;
-    let arr;
+    let arr, limitStreak = 0;
     for (let k = 0; k < 6; k++) {
       try {
         const j = await (await fetch(url)).json();
         if (j?.error) {
-          if (/limit/i.test(j.reason)) { await sleep(62000); continue; }
+          if (/limit/i.test(j.reason)) {
+            if (++limitStreak >= 2) {   // limite journalière probable → on s'arrête proprement
+              process.stdout.write('\n');
+              const st = stats();
+              console.log(`⏸  limite Open-Meteo atteinte. Archive : ${st.mois} mois (${st.premier} → ${st.dernier}).`);
+              console.log('   Relance la même commande demain — elle reprendra où elle s\'est arrêtée.');
+              process.exit(0);
+            }
+            await sleep(62000); continue;
+          }
           if (/too much data/i.test(j.reason) && chunk.length > 10) { throw Object.assign(new Error('split'), { split: true }); }
           throw new Error(j.reason);
         }
         arr = Array.isArray(j) ? j : [j]; break;
       } catch (e) { if (e.split || k === 5) throw e; await sleep(4000); }
     }
+    if (!arr) { console.error('\néchec du lot, on saute'); continue; }
     const obs = {};
     chunk.forEach((p, idx) => {
       const o = arr[idx]; if (!o?.daily) return;
