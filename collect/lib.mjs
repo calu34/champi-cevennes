@@ -50,8 +50,8 @@ export function depsBbox(deps) {
 }
 
 /** grille de points {id,lat,lon,dep} masquée aux départements de CFG */
-export function buildGrid(deps) {
-  const st = CFG.gridStep;
+export function buildGrid(deps, step = CFG.gridStep) {
+  const st = step;
   const bb = depsBbox(deps);
   const pts = [];
   for (let la = bb.latMin; la <= bb.latMax; la += st)
@@ -63,6 +63,25 @@ export function buildGrid(deps) {
       if (dep) pts.push({ id: `${lat}_${lon}`, lat, lon, dep });
     }
   return pts;
+}
+
+/** altitude (m) de chaque point via l'API altimétrique Géoplateforme, cachée sur disque */
+export async function elevations(pts, cacheFile) {
+  const cache = cacheFile && fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
+  const todo = pts.filter(p => cache[p.id] == null);
+  for (let i = 0; i < todo.length; i += 180) {
+    const b = todo.slice(i, i + 180);
+    const u = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json' +
+      `?lon=${b.map(p => p.lon.toFixed(5)).join('|')}&lat=${b.map(p => p.lat.toFixed(5)).join('|')}` +
+      '&resource=ign_rge_alti_wld&zonly=true';
+    try {
+      const e = (await (await fetch(u)).json()).elevations;
+      b.forEach((p, k) => { if (e?.[k] != null && e[k] > -1000) cache[p.id] = Math.round(e[k]); });
+    } catch { /* on garde ce qu'on a */ }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  if (cacheFile) { fs.mkdirSync(path.dirname(cacheFile), { recursive: true }); fs.writeFileSync(cacheFile, JSON.stringify(cache)); }
+  return cache;
 }
 
 export const readJSON = (f, fb = null) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : fb);

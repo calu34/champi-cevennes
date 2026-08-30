@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CFG } from './config.mjs';
-import { loadDeps, buildGrid, todayISO, isoAdd, readJSON } from './lib.mjs';
+import { loadDeps, buildGrid, elevations, todayISO, isoAdd, readJSON } from './lib.mjs';
 import { fetchProxy } from './openmeteo.mjs';
 import { append, setPrecip, assemble, missingDays, stats, VARS } from './archive.mjs';
 import { deriveSeries, scoreSpecies, SPECIES_LIST } from '../model/model.mjs';
@@ -34,26 +34,48 @@ async function main() {
   const deps = loadDeps(ROOT);
   const grid = buildGrid(deps);
   const ids = grid.map(p => p.id);
-  log(`${grid.length} mailles · assemblage depuis ${assembleStart} · source=${CFG.source}`);
 
-  // 1. jours à récupérer chez Open-Meteo : les 8 derniers + prévision (rafraîchi),
-  //    plus les trous éventuels de l'archive (première exécution / panne).
+  // grille météo (Open-Meteo). Plus grossière que la grille de score sur grande
+  // emprise (quota) : la pluie vient alors du radar, Open-Meteo ne sert qu'aux T°/ET0.
+  const meteoStep = +(process.env.CHAMPI_METEOSTEP || CFG.meteoGridStep || CFG.gridStep);
+  const coarse = meteoStep > CFG.gridStep + 1e-9;
+  const meteoGrid = coarse ? buildGrid(deps, meteoStep) : grid;
+  log(`${grid.length} mailles${coarse ? ` (météo sur ${meteoGrid.length} pts à ${meteoStep}°)` : ''} · depuis ${assembleStart} · source=${CFG.source}`);
+
+  // 1. jours à récupérer : les 8 derniers + prévision, + trous de l'archive
   const recentStart = isoAdd(today, -8);
   const gaps = missingDays(ids, assembleStart, isoAdd(today, -9));
   const fetchFrom = gaps.length ? gaps[0] : recentStart;
   log(`Open-Meteo ${fetchFrom} → ${end}` + (gaps.length ? `  (+${gaps.length} j de rattrapage)` : ''));
-  const proxy = await fetchProxy(grid, fetchFrom, end, {
+  const proxy = await fetchProxy(meteoGrid, fetchFrom, end, {
     onProgress: (d, t) => process.stdout.write(`\r  ${d}/${t}`),
   });
   process.stdout.write('\n');
   if (![...proxy.values()][0]) throw new Error('aucune donnée Open-Meteo');
 
-  // 2. injecter dans l'archive
+  // 2. construire les observations par maille de score
   const obs = {};
-  for (const p of grid) {
-    const o = proxy.get(p.id); if (!o) continue;
-    obs[p.id] = { lat: p.lat, lon: p.lon, dep: p.dep, elev: o.elev, time: o.time };
-    for (const v of VARS) obs[p.id][v] = o[v];
+  if (coarse) {
+    const elev = await elevations(grid, R('data/store/elev.json'));
+    const nn = (lat, lon) => meteoGrid.reduce((b, c) => {
+      const d = (c.lat - lat) ** 2 + (c.lon - lon) ** 2; return d < b.d ? { c, d } : b;
+    }, { d: Infinity }).c;
+    for (const p of grid) {
+      const mc = proxy.get(nn(p.lat, p.lon).id); if (!mc) continue;
+      const e = elev[p.id] ?? mc.elev;
+      const dT = -0.0065 * (e - mc.elev);                    // correction gradient adiabatique
+      obs[p.id] = { lat: p.lat, lon: p.lon, dep: p.dep, elev: e, time: mc.time };
+      obs[p.id].precip = mc.precip; obs[p.id].et0 = mc.et0;
+      obs[p.id].tmean = mc.tmean.map(x => x + dT);
+      obs[p.id].tmin = mc.tmin.map(x => x + dT);
+      obs[p.id].tmax = mc.tmax.map(x => x + dT);
+    }
+  } else {
+    for (const p of grid) {
+      const o = proxy.get(p.id); if (!o) continue;
+      obs[p.id] = { lat: p.lat, lon: p.lon, dep: p.dep, elev: o.elev, time: o.time };
+      for (const v of VARS) obs[p.id][v] = o[v];
+    }
   }
   append(obs);
 

@@ -1,4 +1,4 @@
-/* H2 — enrichit web/assets/data/forets-domaniales.geojson avec l'essence dominante
+/* H2 — enrichit web/assets/data/forets-publiques.geojson avec l'essence dominante
  * de chaque forêt, d'après BD Forêt V2 (IGN, WFS Géoplateforme).
  *
  *   node geo/fetch-onf.mjs      # d'abord (produit le fichier de base)
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { pointInGeom } from '../collect/lib.mjs';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
-const FILE = path.join(ROOT, 'web/assets/data/forets-domaniales.geojson');
+const FILE = path.join(ROOT, 'web/assets/data/forets-publiques.geojson');
 const WFS = 'https://data.geopf.fr/wfs/ows';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

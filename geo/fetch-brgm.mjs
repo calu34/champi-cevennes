@@ -1,4 +1,4 @@
-/* H3 — enrichit web/assets/data/forets-domaniales.geojson avec le substrat
+/* H3 — enrichit web/assets/data/forets-publiques.geojson avec le substrat
  * (acide / neutre / calcaire) d'après la carte lithologique simplifiée BRGM 1/1 000 000.
  *
  *   node geo/fetch-brgm.mjs     (après fetch-onf.mjs / fetch-bdforet.mjs)
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { pointInGeom } from '../collect/lib.mjs';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
-const FILE = path.join(ROOT, 'web/assets/data/forets-domaniales.geojson');
+const FILE = path.join(ROOT, 'web/assets/data/forets-publiques.geojson');
 const BRGM = 'https://geoservices.brgm.fr/geologie';
 
 // CODE_GEOL de LITHO_1M_SIMPLIFIEE → classe substrat

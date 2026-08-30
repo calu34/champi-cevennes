@@ -1,18 +1,21 @@
-/* Récupère les forêts DOMANIALES ONF des 6 départements (WFS Géoplateforme)
- * et écrit web/assets/data/forets-domaniales.geojson.
+/* Récupère les forêts PUBLIQUES ONF (WFS Géoplateforme) et écrit
+ * web/assets/data/forets-publiques.geojson — une Feature par forêt, propriété
+ * `dom` (true = domaniale, false = communale/sectionale, toutes sous régime
+ * forestier → cueillette familiale tolérée).
  *
  *   node geo/fetch-onf.mjs
  *
- * Source : ONF.FORETS_PUBLIQUES (Licence Ouverte). Attribut cdom_frt = 'OUI' → domaniale.
- * À relancer seulement si le périmètre des forêts change (rare) — la sortie est versionnée.
+ * Source : ONF.FORETS_PUBLIQUES (Licence Ouverte). cdom_frt = 'OUI' → domaniale.
+ * Relancer les scripts d'enrichissement ensuite (fetch-bdforet/brgm/mnt).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CFG } from '../collect/config.mjs';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
-const DEPS = ['07', '12', '30', '34', '48', '81'];
-const OUT = path.join(ROOT, 'web/assets/data/forets-domaniales.geojson');
+const DEPS = CFG.departements;
+const OUT = path.join(ROOT, 'web/assets/data/forets-publiques.geojson');
 const WFS = 'https://data.geopf.fr/wfs/ows';
 
 const round = (x, n = 4) => Math.round(x * 10 ** n) / 10 ** n;
@@ -60,17 +63,21 @@ for (const dep of DEPS) {
     `&CQL_FILTER=${encodeURIComponent(`cinse_dep='${dep}'`)}` +
     `&OUTPUTFORMAT=application/json&COUNT=5000`;
   const j = await (await fetch(url)).json();
-  const dom = j.features.filter(f => f.properties.cdom_frt === 'OUI');
-  for (const f of dom) {
+  let nd = 0;
+  for (const f of j.features) {
+    const g = cleanGeom(f.geometry);
+    if (!g.coordinates.length) continue;
+    const dom = f.properties.cdom_frt === 'OUI'; if (dom) nd++;
     feats.push({
       type: 'Feature',
-      properties: { id: f.properties.iidtn_frt, nom: f.properties.llib_frt, dep },
-      geometry: cleanGeom(f.geometry),
+      properties: { id: f.properties.iidtn_frt, nom: f.properties.llib_frt, dep, dom },
+      geometry: g,
     });
   }
-  console.log(`  ${dep} : ${dom.length} forêts domaniales / ${j.features.length} forêts publiques`);
+  console.log(`  ${dep} : ${j.features.length} forêts publiques (${nd} domaniales)`);
 }
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ type: 'FeatureCollection', features: feats }));
-console.log(`\n${feats.length} forêts domaniales → ${path.relative(ROOT, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} Ko)`);
+const nd = feats.filter(f => f.properties.dom).length;
+console.log(`\n${feats.length} forêts publiques (${nd} domaniales) → ${path.relative(ROOT, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} Ko)`);

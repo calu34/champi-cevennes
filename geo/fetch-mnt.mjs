@@ -1,4 +1,4 @@
-/* H4 — enrichit web/assets/data/forets-domaniales.geojson avec altitude, pente et
+/* H4 — enrichit web/assets/data/forets-publiques.geojson avec altitude, pente et
  * exposition, d'après le MNT RGE ALTI (API altimétrique Géoplateforme).
  *
  *   node geo/fetch-mnt.mjs     (après les autres fetch-*)
@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
-const FILE = path.join(ROOT, 'web/assets/data/forets-domaniales.geojson');
+const FILE = path.join(ROOT, 'web/assets/data/forets-publiques.geojson');
 const ALTI = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json';
 const DL = 0.006;   // ~500 m en latitude (et un peu moins en longitude à 44°N)
 

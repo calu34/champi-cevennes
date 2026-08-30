@@ -15,7 +15,7 @@ const DEPS = D.departements || ['07', '12', '30', '34', '48', '81'];
 const HAB = D.habitatOpts || { essence: true, substrat: true, mnt: true };
 const today = () => new Date().toLocaleDateString('sv-SE');
 const kToday = Math.max(0, D.days.indexOf(today()));
-const STATE = { species: 'auto', k: kToday, habitat: true, forets: true, brulis: true };
+const STATE = { species: 'auto', k: kToday, habitat: true, forets: true, brulis: true, domOnly: true };
 const monthAt = k => +D.days[k].slice(5, 7);
 
 /* espèce effective : 'auto' → meilleure espèce en saison au jour affiché */
@@ -67,7 +67,7 @@ Promise.all(DEPS.map(c => fetch(`assets/data/dep-${c}.geojson`).then(r => r.json
 const gridLayer = L.layerGroup().addTo(map);
 let foretLayer = null;
 
-fetch('assets/data/forets-domaniales.geojson').then(r => r.ok ? r.json() : null).then(fc => {
+fetch('assets/data/forets-publiques.geojson').then(r => r.ok ? r.json() : null).then(fc => {
   if (!fc) { $('foretsRow').style.display = 'none'; return; }
   for (const f of fc.features) {
     const b = L.geoJSON(f).getBounds();
@@ -149,6 +149,8 @@ function render() {
     if (STATE.forets) foretLayer.addTo(map); else map.removeLayer(foretLayer);
     foretLayer.eachLayer(lyr => {
       const p = lyr.feature.properties, c = lyr.feature._cell;
+      if (STATE.domOnly && !p.dom) { lyr.setStyle({ fillOpacity: 0, opacity: 0 }); lyr.closePopup?.(); return; }
+      lyr.setStyle({ opacity: 1 });
       const b = c ? bestScore(ids, c.s, k) : null;
       let hf = 1, af = 1, bru = 1;
       if (STATE.habitat && b?.id) {
@@ -160,8 +162,8 @@ function render() {
       const v = b ? b.value * hf : 0;
       lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.82 });
       lyr.setPopupContent(
-        `<b>${p.nom}</b> (${p.dep})` +
-        `<br>${p.elev} m · pente ${p.slopeDeg ?? '?'}° · expo ${p.aspect != null ? DIRS[Math.round(p.aspect / 45) % 8] : '?'}` +
+        `<b>${p.nom}</b> (${p.dep}${p.dom ? ', domaniale' : ', communale'})` +
+        `<br>${p.elev ?? '?'} m · pente ${p.slopeDeg ?? '?'}° · expo ${p.aspect != null ? DIRS[Math.round(p.aspect / 45) % 8] : '?'}` +
         `<br>${ESS[p.essence] || '—'} · substrat ${SUB[p.substrat] || '—'}` +
         (b ? `<br><b>${b.id ? SPECIES[b.id].nom : '—'} : ${v.toFixed(0)}</b>` +
           (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''}${bru !== 1 ? ', brûlis ×2.2' : ''})` : '')
@@ -185,6 +187,7 @@ sl.min = 20; sl.max = D.days.length - 1; sl.value = STATE.k;
 sl.addEventListener('input', e => { STATE.k = +e.target.value; render(); });
 $('habitat').addEventListener('change', e => { STATE.habitat = e.target.checked; render(); });
 $('forets').addEventListener('change', e => { STATE.forets = e.target.checked; render(); });
+$('domOnly').addEventListener('change', e => { STATE.domOnly = e.target.checked; render(); });
 $('brulis').addEventListener('change', e => { STATE.brulis = e.target.checked; render(); });
 
 const help = $('help');
