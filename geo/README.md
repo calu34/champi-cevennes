@@ -13,11 +13,29 @@
   au geojson. Résultat 6 dépts : 22 feuillu, 50 conifere, 10 mixte, 8 autre — les
   domaniales cévenoles sont surtout des reboisements RTM résineux. `habitatFactor`
   applique feuillu ×1 / mixte ×0.95 / conifere ×0.85 / autre ×0.35 à la couche forêts.
-- **H3 substrat acide/calcaire (BRGM)** — à faire
-- **H4 pente/exposition (MNT)** — à faire (le filtre altitude actuel est un repli)
+- **H3 — substrat : FAIT.** `geo/fetch-brgm.mjs` classe chaque forêt via la carte
+  lithologique simplifiée BRGM 1/1 000 000 (WFS geoservices.brgm.fr, `CODE_GEOL`).
+  6 dépts : 68 acide, 2 neutre, 20 calcaire — Cévennes (schiste/granite) vs
+  Causses/garrigue héraultaise (calcaire). `habitatFactor` : calcaire ×0.25,
+  neutre ×0.8. Les 20 forêts calcaires = base du futur masque **carte truffe**.
+- **H4 — altitude / pente / exposition : FAIT.** `geo/fetch-mnt.mjs` échantillonne
+  le MNT RGE ALTI (API altimétrique Géoplateforme) : 5 points par forêt → `elev`,
+  `slopeDeg`, `aspect`. La carte applique un bonus/malus **ubac/adret** dépendant
+  de la sécheresse (versant Nord +18 % max en période sèche, Sud −18 %).
 
-> Note : l'essence n'est portée que par la couche **forêts**, pas par les mailles
-> de la grille (vue grille = filtre altitude seul).
+> L'enrichissement habitat (essence/substrat/MNT) n'est porté que par la couche
+> **forêts domaniales**, pas par les mailles de la grille.
+
+## Régénérer les couches
+
+```
+node geo/fetch-onf.mjs       # base : périmètres des forêts domaniales
+node geo/fetch-bdforet.mjs   # + essence
+node geo/fetch-brgm.mjs      # + substrat
+node geo/fetch-mnt.mjs       # + altitude/pente/exposition
+```
+Le résultat `web/assets/data/forets-domaniales.geojson` est versionné — à relancer
+seulement si les données sources changent (rare).
 
 ---
 

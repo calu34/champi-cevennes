@@ -1,5 +1,5 @@
 /* Carte V1 — lit web/data.js (généré par le collecteur), aucun appel d'API. */
-import { deriveSeries, scoreAt, colorFor, habitatFactor, DEFAULTS } from './model.mjs';
+import { deriveSeries, scoreAt, colorFor, habitatFactor, clamp, DEFAULTS } from './model.mjs';
 
 const D = window.CHAMPI;
 const $ = id => document.getElementById(id);
@@ -91,16 +91,29 @@ function render() {
   if (foretLayer) {
     if (STATE.forets) foretLayer.addTo(map); else map.removeLayer(foretLayer);
     const ESS = { feuillu: 'feuillus (chêne/châtaignier/hêtre)', conifere: 'conifères (pins, sapin…)', mixte: 'mixte', autre: 'lande / forêt ouverte' };
+    const SUB = { acide: 'acide (schiste, granite…)', neutre: 'neutre', calcaire: 'calcaire (causse)' };
+    const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
     foretLayer.eachLayer(lyr => {
       const p = lyr.feature.properties, c = lyr.feature._cell;
       const sc = c ? cellScore(c, k) : null;
-      const ef = STATE.habitat && p.essence ? habitatFactor({ essence: p.essence }, { useForet: true }) : 1;
-      const v = sc ? sc[STATE.layer] * ef : 0;
+      let hf = STATE.habitat
+        ? habitatFactor({ essence: p.essence, substrat: p.substrat, elev: p.elev, slopeDeg: p.slopeDeg },
+          { useForet: true, useSubstrat: true, useMnt: true }) : 1;
+      // exposition : en période sèche l'ubac (versant Nord) garde l'humidité
+      let af = 1;
+      if (STATE.habitat && p.aspect != null && sc) {
+        const ubac = Math.cos(p.aspect * Math.PI / 180);          // +1 Nord … -1 Sud
+        const dryness = clamp((sc.detail.dry - 8) / 15, 0, 1);
+        af = 1 + 0.18 * ubac * dryness;
+        hf *= af;
+      }
+      const v = sc ? sc[STATE.layer] * hf : 0;
       lyr.setStyle({ fillColor: colorFor(v), fillOpacity: 0.82 });
       lyr.setPopupContent(`<b>${p.nom}</b> (${p.dep})` +
-        `<br>peuplement : ${ESS[p.essence] || '—'}` +
-        (sc ? `<br><b>Cèpe ${(sc.cepe * ef).toFixed(0)} · Girolle ${(sc.girolle * ef).toFixed(0)}</b>` +
-          (ef !== 1 ? ` (essence ×${ef.toFixed(2)})` : '') : '<br>hors grille météo'));
+        `<br>${p.elev} m · pente ${p.slopeDeg ?? '?'}° · expo ${p.aspect != null ? DIRS[Math.round(p.aspect / 45) % 8] : '?'}` +
+        `<br>peuplement : ${ESS[p.essence] || '—'} · substrat : ${SUB[p.substrat] || '—'}` +
+        (sc ? `<br><b>Cèpe ${(sc.cepe * hf).toFixed(0)} · Girolle ${(sc.girolle * hf).toFixed(0)}</b>` +
+          (hf !== 1 ? ` (habitat ×${hf.toFixed(2)}${af !== 1 ? `, expo ×${af.toFixed(2)}` : ''})` : '') : '<br>hors grille météo'));
     });
   }
 
