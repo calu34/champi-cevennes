@@ -49,13 +49,16 @@ export function depsBbox(deps) {
   return { latMin, latMax, lonMin, lonMax };
 }
 
-/** grille de points {id,lat,lon,dep} masquée aux départements de CFG */
+/** grille de points {id,lat,lon,dep} masquée aux départements de CFG.
+ *  Points calés sur un réseau global (multiples de `step`) → identifiants STABLES
+ *  quand on ajoute des départements ou change l'emprise. */
 export function buildGrid(deps, step = CFG.gridStep) {
   const st = step;
   const bb = depsBbox(deps);
+  const snap = (x, dir) => Math[dir](x / st) * st;
   const pts = [];
-  for (let la = bb.latMin; la <= bb.latMax; la += st)
-    for (let lo = bb.lonMin; lo <= bb.lonMax; lo += st) {
+  for (let la = snap(bb.latMin, 'floor'); la <= bb.latMax; la += st)
+    for (let lo = snap(bb.lonMin, 'floor'); lo <= bb.lonMax; lo += st) {
       const lat = +la.toFixed(4), lon = +lo.toFixed(4);
       let dep = null;
       for (const c of CFG.departements)
