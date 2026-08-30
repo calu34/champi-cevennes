@@ -49,7 +49,11 @@ async function main() {
     const { date, bucket } = slice5(validity);
     const file = path.join(RADAR_DIR, `${date}.json`);
 
-    const acc = readJSON(file, { date, updated: null, buckets: [], slots: [], mm: {}, missing: {} });
+    const acc = readJSON(file, { date });
+    acc.buckets ||= [];              // fichiers d'avant la dédup 5 min : pas de champ `buckets`
+    acc.slots ||= [];
+    acc.mm ||= {};
+    acc.missing ||= {};
     if (acc.buckets.includes(bucket)) {
       log(`créneau ${bucket} déjà cumulé (${acc.buckets.length} créneaux)`);
       return;

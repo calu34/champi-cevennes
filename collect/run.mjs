@@ -57,7 +57,7 @@ async function main() {
     let jm = 0; const daysUsed = [];
     for (let i = 0; i < days.length; i++) {
       const acc = readJSON(path.join(radarDir, `${days[i]}.json`), null);
-      const nSlots = acc?.buckets?.length ?? acc?.slots?.length ?? 0;
+      const nSlots = Math.max(acc?.buckets?.length || 0, acc?.slots?.length || 0);
       if (!acc || nSlots < MIN_SLOTS) continue;
       for (const p of grid) {
         const s = series[p.id]; if (!s) continue;
