@@ -12,7 +12,7 @@ familiale tolérée). Enrichie par les scripts ci-dessous.
 | H2 | `geo/fetch-bdforet.mjs` | `essence` (feuillu/conifere/mixte/autre) | WFS BD Forêt V2 |
 | H3 | `geo/fetch-brgm.mjs` | `substrat` (acide/neutre/calcaire) | WFS BRGM litho 1/1M |
 | H4 | `geo/fetch-mnt.mjs` | `elev`, `slopeDeg`, `aspect` | API altimétrique Géoplateforme |
-| H5 | `geo/fetch-brulis.mjs` | `brulis.geojson` (morilles) | manuel `geo/brulis-manuel.geojson` (pas d'API stable) |
+| H5 | `geo/fetch-brulis.mjs` | `brulis.geojson` (morilles) | EFFIS/GWIS (Copernicus) WFS + complément manuel |
 
 Enchaînement complet :
 ```
@@ -35,6 +35,21 @@ dépend de la sécheresse (versant Nord +18 % max en période sèche).
 
 Couche **« Forêts publiques (ONF) »** + case **« domaniales seules »** (par défaut)
 pour comparer domaniales / communales. Calque **« Brûlis »** (masqué si vide).
+
+### Brûlis (H5) — détail
+
+`geo/fetch-brulis.mjs` interroge **EFFIS / GWIS** (Copernicus, GeoServer
+`maps.effis.emergency.copernicus.eu`) : polygones de surfaces brûlées MODIS
+(~depuis 2000) et VIIRS (375 m). Fenêtre par défaut : 20 mois
+(`CHAMPI_BRULIS_MONTHS`). Filtre ensuite les feux qui recoupent un des
+départements de `config.mjs`.
+
+- Le script log la ligne `champs = …` au 1ᵉʳ lot reçu : si le mapping date/surface
+  est faux (noms de champs EFFIS différents), ajuster `DATE_FIELDS` / `AREA_FIELDS`.
+- Complément : `geo/brulis-manuel.geojson` (non versionné, voir
+  `brulis-manuel.example.geojson`) pour les petits feux sous le seuil satellite.
+- Seuls comptent, côté carte, les feux **< 2 ans** (une morille suit le feu au
+  printemps n+1) → relancer H5 chaque hiver.
 
 ## Étendre la zone
 

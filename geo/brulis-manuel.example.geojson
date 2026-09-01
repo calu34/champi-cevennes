@@ -1,0 +1,14 @@
+{
+  "_comment": "Modèle. Copier en geo/brulis-manuel.geojson (non versionné) et y mettre les feux connus non détectés par EFFIS (petits feux < ~30 ha, ou trous de couverture). Une Feature par incendie. `annee` = année du feu ; le printemps SUIVANT est la saison à morilles. `date` accepté aussi (l'année en est extraite). Géométrie Polygon/MultiPolygon en [lon, lat].",
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "annee": 2024, "commune": "Exemple-sur-Cèze", "surface_ha": 12, "source": "manuel" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[4.10, 44.20], [4.12, 44.20], [4.12, 44.22], [4.10, 44.22], [4.10, 44.20]]]
+      }
+    }
+  ]
+}
