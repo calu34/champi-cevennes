@@ -9,3 +9,5 @@ data/observations/
 data/observations.jsonl
 *.h5
 geo/brulis-manuel.geojson
+docs/node_modules/
+docs/package*.json

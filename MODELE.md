@@ -1,5 +1,9 @@
 # Modèle « conditions de pousse »
 
+> Résumé PDF prêt à imprimer (critères + poids par espèce) :
+> [`docs/modele-cotation.pdf`](docs/modele-cotation.pdf) — régénéré par
+> `docs/make-model-pdf.mjs`.
+
 ## Structure
 
 - **`model/lib.mjs`** — primitives (clamp, trap, séries dérivées, couleurs…)
