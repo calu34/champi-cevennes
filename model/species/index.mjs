@@ -2,11 +2,15 @@ import cepe from './cepe.mjs';
 import girolle from './girolle.mjs';
 import truffe from './truffe.mjs';
 import morille from './morille.mjs';
+import pdm from './pdm.mjs';
+import trompette from './trompette.mjs';
+import ctube from './ctube.mjs';
+import sanguin from './sanguin.mjs';
 
 /* Catalogue d'espèces. Ajouter une espèce = créer model/species/<id>.mjs
  * (même forme : id, nom, saison, fenetreJours, habitat, params, score(), criteres)
  * puis l'importer ici. Rien d'autre à toucher. */
-export const SPECIES_LIST = [cepe, girolle, truffe, morille];
+export const SPECIES_LIST = [cepe, girolle, pdm, trompette, ctube, sanguin, truffe, morille];
 export const SPECIES = Object.fromEntries(SPECIES_LIST.map(s => [s.id, s]));
 
 export const speciesById = id => SPECIES[id];

@@ -16,7 +16,10 @@ import { assemble } from '../collect/archive.mjs';
 import { deriveSeries, scoreSpecies, SPECIES } from '../model/model.mjs';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
-const GBIF_KEY = { cepe: 5954958, girolle: 5249504, truffe: 5258468, morille: 2594601 };
+const GBIF_KEY = {
+  cepe: 5954958, girolle: 5249504, truffe: 5258468, morille: 2594601,
+  pdm: 2554716, trompette: 2554662, ctube: 2554536, sanguin: 5248629,
+};
 const only = process.argv.slice(2);
 
 const grid = buildGrid(loadDeps(ROOT));

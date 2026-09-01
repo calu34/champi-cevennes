@@ -9,8 +9,20 @@
 - **`model/model.mjs`** — API : `scoreSpecies(id, s, k)`, `habitatFactor(id, h, opts)`,
   `expositionFactor(...)`
 
-Espèces : **cèpe**, **girolle**, **truffe noire**, **morille**. Seuils dans chaque
-`model/species/<id>.mjs` → `params`. Modifie, relance `node collect/run.mjs`.
+Espèces : **cèpe**, **girolle**, **pied-de-mouton**, **trompette de la mort**,
+**chanterelle en tube**, **sanguin**, **truffe noire**, **morille**. Seuils dans
+chaque `model/species/<id>.mjs` → `params`. Modifie, relance `node collect/run.mjs`.
+
+| Espèce | Saison | Signal dominant | Habitat clé |
+|---|---|---|---|
+| Cèpe | juin–nov | pluie déclenchante + délai 14 j | feuillus/mixte, acide |
+| Girolle | juin–nov | humidité entretenue 30 j | feuillus/conifère, acide |
+| Pied-de-mouton | sept–déc | arrière-saison, très tolérant sec/froid | feuillus + conifères |
+| Trompette de la mort | sept–nov | litière détrempée, vallons frais | feuillus, neutre/calcaire |
+| Chanterelle en tube | oct–janv | la plus tardive, résiste au gel | conifères moussus, acide |
+| Sanguin | sept–déc | pluies de septembre + délai 13 j | pinèdes, calcaire OK |
+| Truffe noire | sept–mars | orages juin–août → récolte hiver | chêne, strictement calcaire |
+| Morille | mars–mai | réchauffement du sol au printemps | frênaies, brûlis n−1 |
 
 L'indice d'une **maille** = `score météo × facteur altitude`.
 L'indice d'une **forêt domaniale** = `score météo × facteur habitat (essence × substrat
