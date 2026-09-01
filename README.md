@@ -1,9 +1,14 @@
 # Champi-Cévennes — carte des conditions de pousse
 
-Cèpes & girolles sur **6 départements** : Hérault (34), Gard (30), Lozère (48),
-Aveyron (12), Ardèche (07), Tarn (81). Carte truffe prévue plus tard (2ᵉ carte).
+**8 espèces** sur **6 départements** : Hérault (34), Gard (30), Lozère (48),
+Aveyron (12), Ardèche (07), Tarn (81). Cèpe, girolle, pied-de-mouton, trompette de
+la mort, chanterelle en tube, sanguin, truffe noire, morille — une seule carte,
+sélecteur d'espèce (mode « Auto » = meilleure espèce en saison).
 
 **Vert = conditions réunies. Rouge = défavorable.**
+
+Docs : modèle → [`MODELE.md`](MODELE.md) · échelle France → [`SCALE.md`](SCALE.md) ·
+appli mobile / API JSON → [`MOBILE.md`](MOBILE.md) · couches SIG → [`geo/README.md`](geo/README.md).
 
 ---
 

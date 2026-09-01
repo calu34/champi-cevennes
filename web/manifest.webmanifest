@@ -1,0 +1,15 @@
+{
+  "name": "Conditions de pousse — champignons Cévennes",
+  "short_name": "Champi Cévennes",
+  "description": "Carte des zones où la météo est favorable à la pousse des champignons (cèpe, girolle, pied-de-mouton, trompette, sanguin, truffe, morille) sur le Sud-Massif central.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f7f4",
+  "theme_color": "#1b5e20",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

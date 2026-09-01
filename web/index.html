@@ -2,8 +2,12 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Conditions de pousse — cèpes & girolles — Cévennes</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Conditions de pousse — champignons Cévennes</title>
+<meta name="theme-color" content="#1b5e20">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon.svg">
 <link rel="stylesheet" href="assets/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -40,5 +44,9 @@
 <script src="assets/leaflet.js"></script>
 <script src="data.js"></script>
 <script type="module" src="app.mjs"></script>
+<script>
+  if ('serviceWorker' in navigator)
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
 </body>
 </html>

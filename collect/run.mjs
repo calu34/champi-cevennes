@@ -132,13 +132,44 @@ async function main() {
     habitat: { elev: Math.round(s.elev) },
     series: Object.fromEntries(VARS.map(v => [v, s[v].slice(i0).map(x => Math.round(x * 10) / 10)])),
   }));
-  const js = 'window.CHAMPI=' + JSON.stringify({
+  const payload = {
+    schema: 1,
     generated: new Date().toISOString(), source, days: shipDays,
     gridStep: CFG.gridStep, departements: CFG.departements, habitatOpts: CFG.habitat, cells,
-  }) + ';\n';
+  };
   fs.mkdirSync(path.dirname(R(CFG.paths.webData)), { recursive: true });
-  fs.writeFileSync(R(CFG.paths.webData), js);
-  log(`écrit web/data.js (${(js.length / 1024).toFixed(0)} Ko, ${cells.length} mailles, ${shipDays.length} j)`);
+  fs.writeFileSync(R(CFG.paths.webData), 'window.CHAMPI=' + JSON.stringify(payload) + ';\n');
+
+  // --- API JSON (appli mobile / clients tiers) : voir MOBILE.md ---
+  const apiDir = R('web/api');
+  fs.mkdirSync(apiDir, { recursive: true });
+  fs.writeFileSync(path.join(apiDir, 'latest.json'), JSON.stringify(payload));
+
+  // instantané compact au jour J : meilleure espèce + scores météo par maille
+  const kNow = days.indexOf(today) >= 0 ? days.indexOf(today) : days.length - 1;
+  const now = {
+    schema: 1, generated: payload.generated, source, day: days[kNow],
+    especes: SPECIES_LIST.map(s => ({ id: s.id, nom: s.nom, saison: s.saison,
+      enSaison: s.saison.includes(+today.slice(5, 7)) })),
+    cells: Object.entries(series).map(([id, s]) => {
+      const scores = {};
+      for (const sp of SPECIES_LIST) scores[sp.id] = Math.round(scoreSpecies(sp.id, s, kNow).value ?? 0);
+      const best = Object.entries(scores).reduce((a, b) => b[1] > a[1] ? b : a, ['', 0]);
+      return { id, lat: s.lat, lon: s.lon, dep: s.dep, elev: Math.round(s.elev),
+        scores, best: { id: best[0], v: best[1] } };
+    }),
+  };
+  fs.writeFileSync(path.join(apiDir, 'now.json'), JSON.stringify(now));
+  fs.writeFileSync(path.join(apiDir, 'meta.json'), JSON.stringify({
+    schema: 1, generated: payload.generated, source,
+    departements: CFG.departements, gridStep: CFG.gridStep, jours: shipDays.length,
+    mailles: cells.length, especes: SPECIES_LIST.map(s => s.id),
+    endpoints: { latest: 'api/latest.json', now: 'api/now.json', forets: 'assets/data/forets-publiques.geojson', brulis: 'assets/data/brulis.geojson' },
+  }));
+
+  const kb = (fs.statSync(R(CFG.paths.webData)).size / 1024).toFixed(0);
+  const kbNow = (fs.statSync(path.join(apiDir, 'now.json')).size / 1024).toFixed(0);
+  log(`écrit web/data.js (${kb} Ko) + api/{latest,now,meta}.json (now ${kbNow} Ko) — ${cells.length} mailles, ${shipDays.length} j`);
 }
 
 main().catch(e => { console.error('ÉCHEC:', e.message); process.exit(1); });
