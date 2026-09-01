@@ -5,5 +5,7 @@ data/habitat/
 data/*.log
 web/data.js
 web/api/
+data/observations/
+data/observations.jsonl
 *.h5
 geo/brulis-manuel.geojson

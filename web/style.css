@@ -48,3 +48,8 @@ html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,Segoe UI,Ro
 .pt-btns{display:flex;gap:6px;margin-top:2px}
 .pt-btns button{flex:1;padding:5px;border:1px solid #bbb;border-radius:5px;background:#f4f4f4;cursor:pointer}
 .pt-btns .pt-del{color:#b71c1c}
+.pt-share{border-top:1px solid #ddd;margin-top:4px;padding-top:6px}
+.pt-share-t{color:#555;margin-bottom:3px}
+.pt-share label{display:block;margin:1px 0;cursor:pointer;font-size:12px}
+.pt-send{margin-top:4px;padding:5px 8px;border:1px solid #1b5e20;border-radius:5px;background:#e8f5e9;cursor:pointer}
+.pt-sent{display:block;color:#1b5e20;font-size:11px;margin-top:3px}

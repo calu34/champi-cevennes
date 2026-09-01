@@ -29,6 +29,34 @@ async function putThumb(id, dataURL) { try { const db = await idb(); return awai
 async function getThumb(id) { try { const db = await idb(); return await new Promise((res) => { const t = db.transaction('thumbs', 'readonly'); const g = t.objectStore('thumbs').get(id); g.onsuccess = () => res(g.result || null); g.onerror = () => res(null); }); } catch { return null; } }
 async function delThumb(id) { try { const db = await idb(); return await new Promise((res) => { const t = db.transaction('thumbs', 'readwrite'); t.objectStore('thumbs').delete(id); t.oncomplete = res; t.onerror = res; }); } catch { /* */ } }
 
+/* ---------- envoi d'observations au serveur (calage du modèle) ---------- */
+const QKEY = 'champi.observ.queue';
+const ENDPOINT = new URL('api/observ', location.href).href;
+
+async function postObserv(payload) {
+  const r = await fetch(ENDPOINT, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return r.ok;
+}
+export async function sendObserv(payload) {
+  try { if (await postObserv(payload)) return true; } catch { /* réseau */ }
+  try {
+    const q = JSON.parse(localStorage.getItem(QKEY) || '[]');
+    q.push(payload); localStorage.setItem(QKEY, JSON.stringify(q.slice(-50)));
+  } catch { /* plein */ }
+  return false;
+}
+async function flushQueue() {
+  let q;
+  try { q = JSON.parse(localStorage.getItem(QKEY) || '[]'); } catch { return; }
+  if (!q.length) return;
+  const rest = [];
+  for (const p of q) { let ok = false; try { ok = await postObserv(p); } catch { /* */ } if (!ok) rest.push(p); }
+  try { localStorage.setItem(QKEY, JSON.stringify(rest)); } catch { /* */ }
+}
+
 /* ---------- EXIF GPS (lecture directe, sans dépendance) ---------- */
 export async function exifGPS(file) {
   let buf;
@@ -116,6 +144,13 @@ export function initPoints(map, { scoreAt } = {}) {
       ${sc ? `<div class="pt-score">Aujourd'hui ici : <b>${sc}</b></div>` : ''}
       <div class="pt-thumb"></div>
       <div class="pt-btns"><button class="pt-save">Enregistrer</button><button class="pt-del">Supprimer</button></div>
+      <div class="pt-share">
+        <div class="pt-share-t">Aider à caler le modèle&nbsp;:</div>
+        <label><input type="radio" name="r-${p.id}" value="trouve" checked> j'ai trouvé</label>
+        <label><input type="radio" name="r-${p.id}" value="rien"> cherché, rien vu</label>
+        <button class="pt-send">${p.shared ? '✓ renvoyer' : '📤 envoyer (anonyme)'}</button>
+        <span class="pt-sent">${p.shared ? 'partagé le ' + String(p.shared).slice(0, 10) : ''}</span>
+      </div>
     </div>`;
   }
 
@@ -133,6 +168,23 @@ export function initPoints(map, { scoreAt } = {}) {
         if (!confirm('Supprimer ce point ?')) return;
         data.features = data.features.filter(x => x.properties.id !== f.properties.id);
         await delThumb(f.properties.id); save(data); redraw();
+      };
+      el.querySelector('.pt-send').onclick = async () => {
+        f.properties.label = el.querySelector('.pt-label').value.trim();
+        f.properties.espece = el.querySelector('.pt-esp').value;
+        f.properties.note = el.querySelector('.pt-note').value.trim();
+        const resultat = el.querySelector(`input[name="r-${f.properties.id}"]:checked`)?.value || 'trouve';
+        const sentEl = el.querySelector('.pt-sent');
+        sentEl.textContent = '…';
+        const [lon, lat] = f.geometry.coordinates;
+        const payload = {
+          lat, lon, date: f.properties.date, espece: f.properties.espece,
+          resultat, note: f.properties.note, photo: await getThumb(f.properties.id),
+        };
+        const ok = await sendObserv(payload);
+        if (ok) { f.properties.shared = new Date().toISOString(); sentEl.textContent = 'merci ! envoyé'; }
+        else sentEl.textContent = 'hors-ligne — sera renvoyé plus tard';
+        save(data);
       };
       getThumb(f.properties.id).then(t => {
         const box = el.querySelector('.pt-thumb');
@@ -251,5 +303,7 @@ export function initPoints(map, { scoreAt } = {}) {
   }
 
   redraw();
+  flushQueue();                          // renvoie les observations restées hors-ligne
+  addEventListener('online', flushQueue);
   return { redraw, get count() { return data.features.length; } };
 }

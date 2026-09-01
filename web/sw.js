@@ -3,12 +3,13 @@
  * - données (data.js, api/*, geojson) : network-first, repli sur le dernier cache
  * Bump CACHE à chaque changement de coquille.
  */
-const CACHE = 'champi-v2';
+const CACHE = 'champi-v3';
 // coquille minimale garantie ; le reste (modules d'espèces, tuiles…) est mis en
 // cache opportunément au 1ᵉʳ chargement en ligne par le handler `fetch`.
 const SHELL = [
   './', './index.html', './style.css', './app.mjs', './points.mjs',
-  './assets/leaflet.js', './assets/leaflet.css', './assets/icon.svg',
+  './assets/leaflet.js', './assets/leaflet.css',
+  './assets/icon.svg', './assets/icon-192.png',
   './manifest.webmanifest', './model/model.mjs', './model/lib.mjs',
 ];
 const isData = u => /\/(data\.js|api\/|assets\/data\/)/.test(u);
