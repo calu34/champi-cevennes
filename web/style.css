@@ -35,3 +35,16 @@ html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,Segoe UI,Ro
 #helpClose{position:absolute;top:8px;right:12px;border:0;background:none;font-size:22px;
   line-height:1;cursor:pointer;color:#888}
 #helpClose:hover{color:#333}
+
+/* --- points personnels --- */
+.champi-pt .pin{width:16px;height:16px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+  background:#3949ab;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);margin:3px}
+.champi-pts-ctl a{font-size:16px;text-align:center;text-decoration:none;background:#fff;width:30px;height:30px;line-height:30px;display:block}
+.champi-pts-ctl.placing a[data-a="tap"]{background:#c5cae9}
+.pt-form{display:flex;flex-direction:column;gap:5px;min-width:200px}
+.pt-form input,.pt-form select,.pt-form textarea{font:inherit;padding:4px;border:1px solid #bbb;border-radius:4px;width:100%;box-sizing:border-box}
+.pt-meta{color:#777;font-size:11px}
+.pt-score{background:#e8f5e9;border-radius:4px;padding:3px 6px}
+.pt-btns{display:flex;gap:6px;margin-top:2px}
+.pt-btns button{flex:1;padding:5px;border:1px solid #bbb;border-radius:5px;background:#f4f4f4;cursor:pointer}
+.pt-btns .pt-del{color:#b71c1c}

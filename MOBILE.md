@@ -54,10 +54,36 @@ forêt). Pour l'indice affiné d'une forêt : `latest.json` + `model/model.mjs`
 sur les données, *cache-first* sur la coquille). Bumper `CACHE` dans `sw.js` à chaque
 changement de coquille.
 
+**Prérequis : servir en HTTPS** — voir [`deploy/caddy.md`](deploy/caddy.md). Une PWA
+ne s'installe pas sur `http://` ni via le tunnel SSH.
+
+Installer :
+- **Android / Chrome** : ouvrir l'URL → menu ⋮ → « Installer l'application ».
+- **iPhone / Safari** : ouvrir l'URL → Partager → « Sur l'écran d'accueil ».
+
+### 4. Points personnels (`web/points.mjs`)
+
+Coins à champignons, **stockés sur l'appareil** (localStorage + IndexedDB pour les
+vignettes), jamais envoyés. Boutons en bas à droite de la carte :
+
+| | |
+|---|---|
+| 📍 | marque la **position GPS** actuelle (`navigator.geolocation`) |
+| 📌 | mode « poser un point » : touche la carte |
+| 🖼️ | **photo géolocalisée** : lit les coordonnées EXIF GPS (parseur maison, sans lib) et pose le point ; garde une vignette 640 px. Choisir *depuis la galerie* — les photos prises via `<input capture>` perdent souvent le GPS. |
+| ⇅ | export / import `.geojson` (fusion par `id`) |
+
+Chaque point : nom, espèce, note, date, vignette, **et le score météo du jour à cet
+endroit** (maille la plus proche). Popup éditable, suppression.
+
+Évolutions : synchro vers le VPS (endpoint POST + fichier partagé), tri par distance,
+« autour de moi ».
+
 ## Ce qui reste pour une vraie app
 
 1. **Géoloc + « autour de moi »** : trier `now.json` par distance, afficher la
-   meilleure espèce et les 3 meilleures mailles proches. (données déjà suffisantes)
+   meilleure espèce et les 3 meilleures mailles proches. (données déjà suffisantes ;
+   la géoloc est déjà branchée pour les points perso)
 2. **Notifications** : le collecteur détecte un passage de maille sous/au-dessus d'un
    seuil (déjà loggé dans `run.mjs` étape 5) → push. Nécessite un petit backend push
    (ou un service tiers) ; les données de déclenchement existent.

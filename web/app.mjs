@@ -4,6 +4,7 @@ import {
   deriveSeries, scoreSpecies, habitatFactor, expositionFactor, colorFor,
   SPECIES, SPECIES_LIST, enSaison,
 } from './model/model.mjs';
+import { initPoints } from './points.mjs';
 
 const D = window.CHAMPI;
 const $ = id => document.getElementById(id);
@@ -201,7 +202,11 @@ function buildHelp() {
     `<p class="sub">essence × substrat × altitude/pente × exposition (ubac +18 % en période sèche). ` +
     `Facteurs propres à chaque espèce — voir <code>model/species/</code>.</p>` +
     `<p class="sub">Pluie : lame d'eau radar Météo-France 1 km (+ proxy Open-Meteo ~9 km pour les jours incomplets). ` +
-    `Modèle v1, seuils à caler sur observations réelles (GBIF / iNaturalist).</p>`;
+    `Modèle v1, seuils à caler sur observations réelles (GBIF / iNaturalist).</p>` +
+    `<h3>Mes points <span class="sub">(coins perso)</span></h3>` +
+    `<p class="sub">Boutons en bas à droite : 📍 marquer ma position GPS · 📌 poser un point en touchant la carte · ` +
+    `🖼️ importer une photo géolocalisée (choisir depuis la galerie — les photos prises dans l'app perdent souvent le GPS) · ` +
+    `⇅ exporter / importer un fichier <code>.geojson</code>. Les points restent sur ton téléphone (aucun envoi).</p>`;
 }
 $('helpBtn').addEventListener('click', () => { buildHelp(); help.hidden = false; });
 $('helpClose').addEventListener('click', () => help.hidden = true);
@@ -211,3 +216,12 @@ addEventListener('keydown', e => { if (e.key === 'Escape') help.hidden = true; }
 $('status').textContent = `${D.cells.length} mailles · ${D.source} · ${new Date(D.generated).toLocaleString('fr-FR')}`;
 buildHelp();
 render();
+
+/* points personnels (coins) — stockés sur l'appareil */
+function scoreAtLatLon(lat, lon) {
+  const c = cellAt(lat, lon);
+  if (!c) return null;
+  const b = bestScore(speciesFor(STATE.k), c.s, STATE.k);
+  return b.id ? `${SPECIES[b.id].nom} ${Math.round(b.value)}` : null;
+}
+initPoints(map, { scoreAt: scoreAtLatLon });

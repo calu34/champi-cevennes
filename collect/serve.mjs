@@ -27,8 +27,10 @@ http.createServer((req, res) => {
     if (req.method === 'OPTIONS') { res.writeHead(204, cors); res.end(); return; }
     if (err) { res.writeHead(404, cors); res.end('404'); return; }
     const ext = path.extname(file);
-    const cache = /[/\\]api[/\\]/.test(file) || ext === '.json' || ext === '.geojson'
-      ? 'public, max-age=300' : 'public, max-age=3600';
+    // assets figés (leaflet, icône) : cache long ; tout le reste : revalidation
+    // (le service worker gère l'offline ; on évite un JS/JSON périmé après déploiement)
+    const cache = /[/\\]assets[/\\](leaflet|icon)/.test(file)
+      ? 'public, max-age=86400' : 'no-cache';
     res.writeHead(200, { ...cors, 'Content-Type': TYPES[ext] || 'application/octet-stream', 'Cache-Control': cache });
     res.end(buf);
   });
