@@ -28,13 +28,15 @@ console.log(`${grid.length} mailles · ${start} → ${end}`);
 const ids = grid.map(p => p.id);
 const need = missingDays(ids, start, end);
 if (!need.length) { console.log('déjà complet'); process.exit(0); }
-console.log(`${need.length} jours à récupérer — par année, lots de 40 mailles`);
-const BATCH = 40;
+const BATCH = 12;                 // petit lot : l'API archive « pèse » lourd (1 an × 5 var)
+let gap = 7000;                   // pause entre lots, s'allonge si on tape la limite/minute
+console.log(`${need.length} jours à récupérer — par année, lots de ${BATCH} mailles`);
+const ts = () => new Date().toISOString().slice(11, 19);
 
 function bail() {
   process.stdout.write('\n');
   const st = stats();
-  console.log(`⏸  limite journalière Open-Meteo atteinte. Archive : ${st.mois} mois (${st.premier} → ${st.dernier}).`);
+  console.log(`⏸  ${ts()} limite journalière Open-Meteo atteinte. Archive : ${st.mois} mois (${st.premier} → ${st.dernier}).`);
   console.log('   Relance la même commande demain — elle reprendra exactement où elle s\'est arrêtée.');
   process.exit(0);
 }
@@ -49,8 +51,8 @@ for (let yr = y0; yr <= y1; yr++) {
     const lat = chunk.map(p => p.lat).join(','), lon = chunk.map(p => p.lon).join(',');
     const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
       `&daily=${DAILY}&start_date=${a}&end_date=${b}&timezone=Europe%2FParis`;
-    // backoff : 65 s (limite minute) ×2, puis 20 min (limite horaire) ×3, sinon = limite jour
-    const waits = [65000, 65000, 1200000, 1200000, 1200000];
+    // patience croissante : 70 s (minute) ×3, 6 min, 15 min, 30 min ×2, sinon = limite jour
+    const waits = [70000, 70000, 70000, 360000, 900000, 1800000, 1800000];
     let arr;
     for (let k = 0; k <= waits.length; k++) {
       try {
@@ -58,10 +60,11 @@ for (let yr = y0; yr <= y1; yr++) {
         if (j?.error) {
           if (isLimit(j.reason)) {
             if (isDaily(j.reason) || k === waits.length) bail();
-            if (k === 0) console.log(`\n   ${j.reason} — pause ${waits[k] / 1000}s`);
+            if (k <= 2) gap = Math.min(gap + 2000, 20000);   // on ralentit le rythme
+            console.log(`\n   ${ts()} ${j.reason} — pause ${waits[k] / 1000}s (essai ${k + 1})`);
             await sleep(waits[k]); continue;
           }
-          if (/too much data/i.test(j.reason) && chunk.length > 10) { throw Object.assign(new Error('split'), { split: true }); }
+          if (/too much data/i.test(j.reason) && chunk.length > 4) { throw Object.assign(new Error('split'), { split: true }); }
           throw new Error(j.reason);
         }
         arr = Array.isArray(j) ? j : [j]; break;
@@ -76,7 +79,7 @@ for (let yr = y0; yr <= y1; yr++) {
     });
     append(obs);
     process.stdout.write(`\r  ${yr} · ${Math.min(i + BATCH, grid.length)}/${grid.length}   `);
-    await sleep(5000);   // ~480 appels/min < plafond minute (600)
+    await sleep(gap);
   }
 }
 process.stdout.write('\n');
