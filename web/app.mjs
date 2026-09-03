@@ -75,7 +75,7 @@ fetch('assets/data/forets-publiques.geojson').then(r => r.ok ? r.json() : null).
     f._c = b.getCenter();
     f._cell = cellAt(b.getCenter().lat, b.getCenter().lng);
   }
-  foretLayer = L.geoJSON(fc, { style: { color: '#1b5e20', weight: 1, fillOpacity: 0.8 } });
+  foretLayer = L.geoJSON(fc, { style: { color: '#555', weight: 0.6, fillOpacity: 0.8 } });
   loadBrulis();
   render();
 });
