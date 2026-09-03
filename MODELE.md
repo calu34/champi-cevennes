@@ -84,7 +84,7 @@ reste humide.*
 | Pénalité canicule préalable | `heatPrior` | `−0.15` si > 34 °C | stress du mycélium avant l'épisode |
 
 ```
-raw  = Pevent_scale^0.7 · delai · bande_thermique · (0.5+0.5·moist) · (0.55+0.45·SM) · (1+choc)
+raw  = Pevent_scale^0.7 · delai · bande_thermique · (0.45+0.55·moist) · (0.5+0.5·SM) · (1+choc) · 0.88
 cepe = clamp( 100 · raw · (1 − min(pénalités, 0.9)), 0, 100 )
 ```
 

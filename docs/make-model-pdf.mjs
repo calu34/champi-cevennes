@@ -101,7 +101,7 @@ const SPECIES = [
       ['Pénalité canicule', 'T° max entre J-20 et J-10 > 34 °C', 'Pénalité -15 %'],
     ],
     calage: 'Recalé sur GBIF 2019-2025 : les seuils d\'origine sous-cotaient les vraies observations (médiane 8/100). Seuils élargis, planchers relevés.',
-    formule: 'raw = trig^0.7 x délai x bande° x (0.5 + 0.5·hum15) x (0.55 + 0.45·humSol) x (1 + choc)   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
+    formule: 'raw = trig^0.7 x délai x bande° x (0.45 + 0.55·hum15) x (0.5 + 0.5·humSol) x (1 + choc) x 0.88   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
   },
   {
     nom: 'Girolle', latin: 'Cantharellus cibarius',

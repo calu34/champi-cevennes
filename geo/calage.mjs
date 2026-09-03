@@ -38,6 +38,19 @@ async function gbif(key, page) {
 
 const q = (a, f) => a.slice().sort((x, y) => x - y)[Math.floor(f * (a.length - 1))] ?? 0;
 
+// RNG déterministe → résultats reproductibles d'une exécution à l'autre
+let _seed = 12345;
+const rnd = () => { _seed |= 0; _seed = _seed + 0x6D2B79F5 | 0; let t = Math.imul(_seed ^ _seed >>> 15, 1 | _seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+// AUC : proba qu'une obs tirée au hasard score plus haut qu'une pseudo-absence.
+// 0.5 = modèle nul · 0.7 = acceptable · 0.8 = bon · 0.9 = excellent. Sans seuil.
+function auc(pos, neg) {
+  if (!pos.length || !neg.length) return null;
+  let s = 0;
+  for (const p of pos) for (const n of neg) s += p > n ? 1 : p === n ? 0.5 : 0;
+  return s / (pos.length * neg.length);
+}
+
 for (const sp of Object.keys(SPECIES)) {
   if (only.length && !only.includes(sp)) continue;
   const key = GBIF_KEY[sp];
@@ -69,11 +82,11 @@ for (const sp of Object.keys(SPECIES)) {
   // 3. pseudo-absences : mailles/dates au hasard en saison
   const scoreRandom = [];
   const years = [...new Set(inSeason.map(o => +o.date.slice(0, 4)))];
-  for (let i = 0; i < 400 && years.length; i++) {
-    const c = grid[(Math.random() * grid.length) | 0];
-    const yr = years[(Math.random() * years.length) | 0];
-    const mo = SPECIES[sp].saison[(Math.random() * SPECIES[sp].saison.length) | 0];
-    const day = `${yr}-${String(mo).padStart(2, '0')}-${String(1 + ((Math.random() * 27) | 0)).padStart(2, '0')}`;
+  for (let i = 0; i < 1000 && years.length; i++) {
+    const c = grid[(rnd() * grid.length) | 0];
+    const yr = years[(rnd() * years.length) | 0];
+    const mo = SPECIES[sp].saison[(rnd() * SPECIES[sp].saison.length) | 0];
+    const day = `${yr}-${String(mo).padStart(2, '0')}-${String(1 + ((rnd() * 27) | 0)).padStart(2, '0')}`;
     const s0 = new Date(Date.parse(day) - 105 * 86400000).toISOString().slice(0, 10);
     const ser = assemble([c.id], s0, day)[c.id];
     if (ser.time.length < 40 || ser.precip.every(x => x === 0)) continue;
@@ -84,11 +97,10 @@ for (const sp of Object.keys(SPECIES)) {
   // 4. rapport
   const nm = SPECIES[sp].nom;
   if (!scoreAtObs.length) { console.log(`\n${nm} : ${inSeason.length} obs en saison, mais archive météo absente → backfill d'abord`); continue; }
-  const above = scoreRandom.length
-    ? scoreAtObs.filter(v => v > q(scoreRandom, 0.5)).length / scoreAtObs.length : 0;
+  const A = auc(scoreAtObs, scoreRandom);
   console.log(`\n=== ${nm} ===`);
   console.log(`obs GBIF : ${obs.length} (${inSeason.length} en saison, ${scoreAtObs.length} avec météo)`);
   console.log(`  score aux obs      : méd ${q(scoreAtObs, .5).toFixed(0)}  [${q(scoreAtObs, .25).toFixed(0)}–${q(scoreAtObs, .75).toFixed(0)}]  p90 ${q(scoreAtObs, .9).toFixed(0)}`);
   console.log(`  score au hasard    : méd ${q(scoreRandom, .5).toFixed(0)}  [${q(scoreRandom, .25).toFixed(0)}–${q(scoreRandom, .75).toFixed(0)}]`);
-  console.log(`  → ${(above * 100).toFixed(0)} % des obs au-dessus de la médiane "au hasard"  (50 % = modèle nul, >70 % = bon signal)`);
+  console.log(`  AUC ${A == null ? '—' : A.toFixed(2)}   (0.5 nul · 0.7 acceptable · 0.8 bon · 0.9 excellent)`);
 }
