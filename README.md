@@ -7,7 +7,8 @@ sélecteur d'espèce (mode « Auto » = meilleure espèce en saison).
 
 **Vert = conditions réunies. Rouge = défavorable.**
 
-Docs : modèle → [`MODELE.md`](MODELE.md) · échelle France → [`SCALE.md`](SCALE.md) ·
+Docs : modèle → [`MODELE.md`](MODELE.md) · **ce que le modèle vaut / méthode de calage
+→ [`METHODE.md`](METHODE.md)** · échelle France → [`SCALE.md`](SCALE.md) ·
 appli mobile / API JSON → [`MOBILE.md`](MOBILE.md) · couches SIG → [`geo/README.md`](geo/README.md).
 
 ---
