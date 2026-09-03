@@ -91,16 +91,17 @@ const SPECIES = [
       ['Exposition', 'versant nord (ubac) +18 % max en période sèche ; sud -18 %'],
     ],
     criteres: [
-      ['Pluie déclenchante', 'meilleur cumul 48 h des 21 derniers jours ; nul sous 20 mm, plein à 60 mm', 'Porte (courbe trig^0.8)'],
-      ['Délai depuis l\'épisode', 'cloche centrée sur 14 j (écart-type 7) ; x0.2 si <= 3 j, x0.4 si > 32 j', 'Porte (nul si trop récent ou > 1 mois)'],
-      ['Humidité entretenue', 'pluie des 15 j : 30 -> 80 mm', 'Modulateur -65 %'],
-      ['Température du sol', 'trapèze 8 / 13 / 19 / 22 °C', 'Porte thermique'],
+      ['Pluie déclenchante', 'meilleur cumul 48 h des 21 derniers jours ; nul sous 12 mm, plein à 45 mm', 'Porte (courbe trig^0.7)'],
+      ['Délai depuis l\'épisode', 'cloche centrée sur 14 j (écart-type 10) ; x0.35 si <= 3 j, x0.5 si > 38 j', 'Porte (nul si trop récent ou > 5 semaines)'],
+      ['Humidité entretenue', 'pluie des 15 j : 12 -> 45 mm', 'Modulateur -50 %'],
+      ['Température du sol', 'trapèze 8 / 12 / 20 / 23 °C', 'Porte thermique'],
       ['Choc thermique', 'refroidissement de 2 à 6 °C sur 10 j', 'Bonus +25 % max'],
       ['Pénalité gel', 'T° min 7 j < 0 °C : -50 % ; < -3 °C : -30 % de plus', 'Pénalité'],
       ['Pénalité dessèchement', 'ET0 - pluie sur 7 j, de 0 à 25 mm', 'Pénalité -35 % max'],
       ['Pénalité canicule', 'T° max entre J-20 et J-10 > 34 °C', 'Pénalité -15 %'],
     ],
-    formule: 'raw = trig^0.8 x délai x bande° x (0.35 + 0.65·hum15) x (0.4 + 0.6·humSol) x (1 + choc) / 1.25   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
+    calage: 'Recalé sur GBIF 2019-2025 : les seuils d\'origine sous-cotaient les vraies observations (médiane 8/100). Seuils élargis, planchers relevés.',
+    formule: 'raw = trig^0.7 x délai x bande° x (0.5 + 0.5·hum15) x (0.55 + 0.45·humSol) x (1 + choc)   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
   },
   {
     nom: 'Girolle', latin: 'Cantharellus cibarius',
@@ -199,16 +200,17 @@ const SPECIES = [
       ['Exposition', 'ubac +18 % max en période sèche'],
     ],
     criteres: [
-      ['Pluie déclenchante', 'meilleur cumul 48 h des 24 derniers jours ; nul sous 22 mm, plein à 62', 'Porte (courbe trig^0.85)'],
-      ['Délai', 'triangle centré sur 13 j (+/- 8 j), plancher 15 % ; 25 % si <= 3 j ; x0.4 si > 30 j', 'Porte'],
-      ['Humidité entretenue', 'pluie des 15 j : 22 -> 65 mm', 'Modulateur -65 %'],
+      ['Pluie déclenchante', 'meilleur cumul 48 h des 24 derniers jours ; nul sous 13 mm, plein à 46', 'Porte (courbe trig^0.75)'],
+      ['Délai', 'triangle centré sur 13 j (+/- 12 j), plancher 20 % ; 35 % si <= 3 j ; x0.5 si > 34 j', 'Porte'],
+      ['Humidité entretenue', 'pluie des 15 j : 14 -> 52 mm', 'Modulateur -50 %'],
       ['Température du sol', 'trapèze 7 / 11 / 18 / 23 °C (automne doux méditerranéen)', 'Porte thermique'],
-      ['Humidité du sol', 'réservoir pluie - ET0', 'Modulateur -60 %'],
-      ['Série sèche', 'pénalité de 14 j à 28 j sans pluie', 'Modulateur -50 % max'],
+      ['Humidité du sol', 'réservoir pluie - ET0', 'Modulateur -50 %'],
+      ['Série sèche', 'pénalité de 16 j à 30 j sans pluie', 'Modulateur -50 % max'],
       ['Pénalité dessèchement', 'ET0 - pluie sur 7 j', 'Pénalité -30 % max'],
       ['Pénalité gel', 'T° min 7 j < -2 °C', 'Pénalité -35 %'],
     ],
-    formule: 'raw = trig^0.85 x délai x bande° x (0.35 + 0.65·hum15) x (0.4 + 0.6·humSol) x (1 - 0.5·sécheresse)   ;   score = 100·raw x (1 - pénalités, plafond -85 %)',
+    calage: 'Déclencheur adouci sur GBIF 2019-2025 : une observation sur quatre sortait à zéro (le meilleur épisode 48 h y était sous 22 mm).',
+    formule: 'raw = trig^0.75 x délai x bande° x (0.5 + 0.5·hum15) x (0.5 + 0.5·humSol) x (1 - 0.5·sécheresse)   ;   score = 100·raw x (1 - pénalités, plafond -85 %)',
   },
   {
     nom: 'Truffe noire', latin: 'Tuber melanosporum',
@@ -244,14 +246,15 @@ const SPECIES = [
       ['Couches manquantes', 'brûlis de l\'année n-1 (x2.2 sur les forêts recoupant un feu < 2 ans, si la couche est chargée), ripisylve, frênaie'],
     ],
     criteres: [
-      ['Température du sol', 'trapèze 6 / 9 / 14 / 18 °C', 'Porte thermique'],
-      ['Réchauffement du sol', 'hausse de Tsol sur 14 j, plein à +3 °C', 'Moteur -70 % (c\'est la dynamique qui déclenche)'],
-      ['Réserve hydrique', 'pluie des 30 j : 25 -> 75 mm', 'Modulateur -60 %'],
+      ['Température du sol', 'trapèze 5 / 9 / 13 / 16 °C (fenêtre resserrée)', 'Porte thermique'],
+      ['Réchauffement du sol', 'hausse de Tsol sur 14 j, plein à +2.5 °C', 'Moteur -80 % (c\'est la dynamique qui déclenche)'],
+      ['Réserve hydrique', 'pluie des 30 j : 20 -> 65 mm', 'Modulateur -65 %'],
       ['Humidité du sol', 'réservoir pluie - ET0', 'Modulateur -50 %'],
-      ['Amplitude jour / nuit', 'écart T° max - min sur 7 j : 8 -> 16 °C', 'Modulateur -25 %'],
+      ['Amplitude jour / nuit', 'écart T° max - min sur 7 j : 7 -> 15 °C', 'Modulateur -25 %'],
       ['Gel', 'T° min 7 j < -2 °C', 'Pénalité -50 %'],
     ],
-    formule: 'raw = bande° x (0.3 + 0.7·réchauffement) x (0.4 + 0.6·pluie30) x (0.5 + 0.5·humSol) x (0.75 + 0.25·amplitude)   ;   score = 100·raw x (1 - gel)',
+    calage: 'Séparation faible (63 %) au calage GBIF : la morille dépend surtout d\'un habitat (brûlis n-1, frênaie, ripisylve) pas encore cartographié. Fenêtre resserrée et poids accru sur la dynamique de réchauffement pour tirer un peu de signal.',
+    formule: 'raw = bande° x (0.2 + 0.8·réchauffement) x (0.35 + 0.65·pluie30) x (0.5 + 0.5·humSol) x (0.75 + 0.25·amplitude)   ;   score = 100·raw x (1 - gel)',
   },
 ];
 
@@ -279,8 +282,24 @@ table(
   GENERAL.poids,
 );
 
-h2('Calage');
-p("Rejeu du modèle sur les observations GBIF passées (2022-2025) contre des tirages au hasard en saison : cèpe 82 %, girolle 84 % des observations au-dessus de la médiane « au hasard » (50 % = modèle nul, > 70 % = bon signal). Les autres espèces et les seuils fins seront calés au fur et à mesure des remontées de terrain.");
+doc.addPage();
+h1('Calage sur observations GBIF (2019-2025)');
+p("Rejeu du modèle sur les occurrences GBIF passées contre des tirages au hasard en saison (pseudo-absences). Métrique : % des observations dont le score dépasse la médiane « au hasard » — 50 % = modèle nul, > 70 % = bon signal.");
+doc.moveDown(0.2);
+table(
+  [{ t: 'Espèce', w: 0.24 }, { t: 'n obs', w: 0.12 }, { t: 'Score obs (méd)', w: 0.22 }, { t: 'Séparation', w: 0.16 }, { t: 'Suite', w: 0.26 }],
+  [
+    ['Cèpe', '107', '8 -> recalé', '79 %', 'seuils élargis'],
+    ['Girolle', '89', '46', '78 %', 'OK'],
+    ['Pied-de-mouton', '51', '44', '80 %', 'OK'],
+    ['Trompette', '29', '60', '83 %', 'OK'],
+    ['Chanterelle en tube', '40', '75', '78 %', 'un peu optimiste'],
+    ['Sanguin', '24', '30 (Q1 = 0)', '71 %', 'déclencheur adouci'],
+    ['Truffe', '2', '-', '-', 'GBIF quasi vide - non calable'],
+    ['Morille', '40', '22', '63 %', 'besoin couche brûlis'],
+  ],
+);
+p("Les seuils fins et la truffe seront revus au fur et à mesure des remontées de terrain (data/observations.jsonl via l'appli).", { color: GREY });
 
 /* ---------- une page par espèce ---------- */
 for (const sp of SPECIES) {
@@ -306,6 +325,13 @@ for (const sp of SPECIES) {
   h2('Formule');
   doc.font('Courier').fontSize(7.8).fillColor('#222').text(sp.formule, { lineGap: 2 });
   doc.fillColor('black');
+
+  if (sp.calage) {
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GREEN).text('Calage : ', { continued: true })
+      .font('Helvetica').fillColor(GREY).text(sp.calage);
+    doc.fillColor('black');
+  }
 }
 
 /* ---------- pied de page ---------- */

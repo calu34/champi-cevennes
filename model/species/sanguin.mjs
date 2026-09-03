@@ -19,9 +19,10 @@ export default {
     exposition: true,
   },
   params: {
-    trigLo: 22, trigHi: 62, lagPeak: 13, lagSigma: 8,
-    p15Lo: 22, p15Hi: 65, tA: 7, tB: 11, tC: 18, tD: 23,
-    dryLo: 14, dryHi: 28,
+    // calé sur GBIF 2019-2025 : déclencheur adouci (1 obs sur 4 sortait à 0)
+    trigLo: 13, trigHi: 46, lagPeak: 13, lagSigma: 12,
+    p15Lo: 14, p15Hi: 52, tA: 7, tB: 11, tC: 18, tD: 23,
+    dryLo: 16, dryHi: 30,
   },
 
   score(s, k, p = this.params) {
@@ -39,25 +40,25 @@ export default {
     for (let i = Math.max(0, k - 29); i <= k; i++) { if ((P[i] || 0) < 1) { run++; dry = Math.max(dry, run); } else run = 0; }
 
     const trig = clamp((ev.mm - p.trigLo) / (p.trigHi - p.trigLo), 0, 1);
-    let lag = ev.daysAgo <= 3 ? 0.25 : clamp(1 - Math.abs(ev.daysAgo - p.lagPeak) / p.lagSigma / 2, 0.15, 1);
-    if (ev.daysAgo > 30) lag *= 0.4;
+    let lag = ev.daysAgo <= 3 ? 0.35 : clamp(1 - Math.abs(ev.daysAgo - p.lagPeak) / p.lagSigma / 2, 0.2, 1);
+    if (ev.daysAgo > 34) lag *= 0.5;
     const moist = clamp((P15 - p.p15Lo) / (p.p15Hi - p.p15Lo), 0, 1);
     const band = trap(Tsol, p.tA, p.tB, p.tC, p.tD);
     const dpen = clamp((dry - p.dryLo) / (p.dryHi - p.dryLo), 0, 1);
     let pen = 0.3 * clamp((ET7 - P7) / 25, 0, 1);
     if (Tmin7 < -2) pen += 0.35;
 
-    const raw = Math.pow(trig, 0.85) * lag * band * (0.35 + 0.65 * moist) * (0.4 + 0.6 * SM) * (1 - 0.5 * dpen);
+    const raw = Math.pow(trig, 0.75) * lag * band * (0.5 + 0.5 * moist) * (0.5 + 0.5 * SM) * (1 - 0.5 * dpen);
     const value = clamp(100 * raw * (1 - Math.min(pen, 0.85)), 0, 100);
     return { value, detail: { P7, P15, P21, P30, Pevent: ev.mm, Devent: ev.daysAgo, Tsol, dTsol, SM, ET7, Tmin7, dry } };
   },
 
   criteres: [
-    ['Pluie déclenchante', 'meilleur cumul 48 h des 24 derniers jours — nul sous 22 mm, plein à 62'],
-    ['Délai', 'optimal 9–17 j après l\'épisode (pic 13 j)'],
-    ['Humidité entretenue', 'pluie des 15 j (22 → 65 mm)'],
+    ['Pluie déclenchante', 'meilleur cumul 48 h des 24 derniers jours — nul sous 13 mm, plein à 46'],
+    ['Délai', 'optimal 7–19 j après l\'épisode (pic 13 j)'],
+    ['Humidité entretenue', 'pluie des 15 j (14 → 52 mm)'],
     ['Température du sol', 'automne doux méditerranéen : 11–18 °C'],
-    ['Série sèche', 'pénalité dès 14 j sans pluie'],
+    ['Série sèche', 'pénalité dès 16 j sans pluie'],
     ['Pénalités', 'semaine évaporante (ET0 > pluie), gelée < −2 °C'],
   ],
 };

@@ -19,7 +19,7 @@ chaque `model/species/<id>.mjs` → `params`. Modifie, relance `node collect/run
 
 | Espèce | Saison | Signal dominant | Habitat clé |
 |---|---|---|---|
-| Cèpe | juin–nov | pluie déclenchante + délai 14 j | feuillus/mixte, acide |
+| Cèpe | juin–nov | pluie déclenchante (≥ 12 mm) + délai 14 j | feuillus/mixte, acide |
 | Girolle | juin–nov | humidité entretenue 30 j | feuillus/conifère, acide |
 | Pied-de-mouton | sept–déc | arrière-saison, très tolérant sec/froid | feuillus + conifères |
 | Trompette de la mort | sept–nov | litière détrempée, vallons frais | feuillus, neutre/calcaire |
@@ -68,20 +68,23 @@ référence), T° air moyenne / min / max. Le modèle en dérive :
 *Un cèpe pousse 10–20 j après une vraie pluie, si le sol est à bonne température et
 reste humide.*
 
+> **Recalé sept. 2026** (GBIF 2019-2025) : les seuils d'origine sous-cotaient les vraies
+> observations (médiane 8/100). Seuils élargis, planchers relevés, `/1.25` retiré.
+
 | Critère | Variable | Seuils (`cepe.*`) | Effet | Rationnel |
 |---|---|---|---|---|
-| Pluie déclenchante | `Pevent` | `trigLo 20` → `trigHi 60` mm | 0 sous 20 mm, plein à 60 | le mycélium ne lance une fructification qu'après un apport d'eau net |
-| Délai | `Devent` | `lagPeak 14`, `lagSigma 7` j | cloche gaussienne, pic à 14 j ; ×0.2 si ≤ 3 j ; ×0.4 si > 32 j | temps de formation du carpophore ; après ~1 mois la vague est passée |
-| Humidité entretenue | `P15` | `p15Lo 30` → `p15Hi 80` mm | facteur 0→1 sur `(0.35 + 0.65·moist)` | une pluie unique suivie de 2 semaines sèches = avortement |
-| Température du sol | `Tsol` | trapèze `8 / 13 / 19 / 22` °C | 0 hors [8, 22], plein sur [13, 19] | trop chaud (été) ou trop froid (gel) = pas de fructification |
+| Pluie déclenchante | `Pevent` | `trigLo 12` → `trigHi 45` mm | 0 sous 12 mm, plein à 45 | le mycélium ne lance une fructification qu'après un apport d'eau net |
+| Délai | `Devent` | `lagPeak 14`, `lagSigma 10` j | cloche gaussienne, pic à 14 j ; ×0.35 si ≤ 3 j ; ×0.5 si > 38 j | temps de formation du carpophore ; après ~5 semaines la vague est passée |
+| Humidité entretenue | `P15` | `p15Lo 12` → `p15Hi 45` mm | facteur 0→1 sur `(0.5 + 0.5·moist)` | une pluie unique suivie de 2 semaines sèches = avortement |
+| Température du sol | `Tsol` | trapèze `8 / 12 / 20 / 23` °C | 0 hors [8, 23], plein sur [12, 20] | trop chaud (été) ou trop froid (gel) = pas de fructification |
 | Choc thermique | `dTsol` | bonus `+25 %` max si `−dTsol/5` ∈ [0, 1] | le refroidissement après une période chaude est un signal connu |
-| Humidité du sol | `SM` | facteur `0.4 + 0.6·SM` | réserve réellement disponible |
+| Humidité du sol | `SM` | facteur `0.55 + 0.45·SM` | réserve réellement disponible |
 | Pénalité gel | `Tmin7` | `−0.5` si < 0 °C, `−0.3` de plus si < −3 °C | le gel détruit les carpophores |
 | Pénalité dessèchement | `ET7 − P7` | `−0.35` max, proportionnel sur [0, 25 mm] | vent + chaleur + pas de pluie |
 | Pénalité canicule préalable | `heatPrior` | `−0.15` si > 34 °C | stress du mycélium avant l'épisode |
 
 ```
-raw  = Pevent_scale^0.8 · delai · bande_thermique · (0.35+0.65·moist) · (0.4+0.6·SM) · (1+choc) / 1.25
+raw  = Pevent_scale^0.7 · delai · bande_thermique · (0.5+0.5·moist) · (0.55+0.45·SM) · (1+choc)
 cepe = clamp( 100 · raw · (1 − min(pénalités, 0.9)), 0, 100 )
 ```
 
@@ -124,8 +127,23 @@ Multiplie l'indice météo de la forêt.
 
 ---
 
-## Calage prévu
+## Calage (sept. 2026)
 
-Croiser les occurrences GBIF / iNaturalist de *Boletus edulis* et *Cantharellus
-cibarius* sur les 6 départements avec la météo des 20 j précédant chaque observation,
-pour ajuster les seuils sur des données réelles plutôt qu'à dire d'expert.
+`geo/backfill-archive.mjs 2019 2025` (archive ERA5 complète) + `geo/calage.mjs` :
+rejeu du modèle sur les occurrences GBIF passées, comparé à des pseudo-absences
+(mailles/dates au hasard en saison). Métrique = % des observations au-dessus de la
+médiane « au hasard » (50 % = modèle nul, > 70 % = bon signal).
+
+| Espèce | n obs (météo) | Score obs (méd) | Séparation | Suite |
+|---|---|---|---|---|
+| Cèpe | 107 | 8 → **recalé** | 79 % | seuils élargis (voir ci-dessus) |
+| Girolle | 89 | 46 | 78 % | OK |
+| Pied-de-mouton | 51 | 44 | 80 % | OK |
+| Trompette | 29 | 60 | 83 % | OK |
+| Chanterelle en tube | 40 | 75 | 78 % | un peu optimiste |
+| Sanguin | 24 | 30 (Q1 = 0) | 71 % | **déclencheur adouci** |
+| Truffe | 2 | — | — | GBIF quasi vide (discrétion des trufficulteurs) — non calable |
+| Morille | 40 | 22 | 63 % | tune léger ; besoin de la couche brûlis pour un vrai signal |
+
+À relancer après chaque modif de seuils, et quand les observations terrain
+(`data/observations.jsonl`, via l'appli) seront assez nombreuses → `geo/observations.mjs`.

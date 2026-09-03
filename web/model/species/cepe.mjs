@@ -14,8 +14,9 @@ export default {
     exposition: true,
   },
   params: {
-    trigLo: 20, trigHi: 60, lagPeak: 14, lagSigma: 7,
-    tA: 8, tB: 13, tC: 19, tD: 22, p15Lo: 30, p15Hi: 80,
+    // calé sur GBIF 2019-2025 : les seuils d'origine sous-cotaient les vraies obs (médiane 8/100)
+    trigLo: 12, trigHi: 45, lagPeak: 14, lagSigma: 10,
+    tA: 8, tB: 12, tC: 20, tD: 23, p15Lo: 12, p15Hi: 45,
   },
 
   score(s, k, p = this.params) {
@@ -34,8 +35,8 @@ export default {
 
     const trig = clamp((ev.mm - p.trigLo) / (p.trigHi - p.trigLo), 0, 1);
     let lag = bell(ev.daysAgo, p.lagPeak, p.lagSigma);
-    if (ev.daysAgo <= 3) lag *= 0.2;
-    if (ev.daysAgo > 32) lag *= 0.4;
+    if (ev.daysAgo <= 3) lag *= 0.35;
+    if (ev.daysAgo > 38) lag *= 0.5;
     const moist = clamp((P15 - p.p15Lo) / (p.p15Hi - p.p15Lo), 0, 1);
     const band = trap(Tsol, p.tA, p.tB, p.tC, p.tD);
     const shock = clamp(-dTsol / 5, 0, 1) * 0.25;
@@ -46,16 +47,16 @@ export default {
     pen += 0.35 * clamp((ET7 - P7) / 25, 0, 1);
     if (heatPrior > 34) pen += 0.15;
 
-    const raw = Math.pow(trig, 0.8) * lag * band * (0.35 + 0.65 * moist) * (0.4 + 0.6 * SM) * (1 + shock) / 1.25;
+    const raw = Math.pow(trig, 0.7) * lag * band * (0.5 + 0.5 * moist) * (0.55 + 0.45 * SM) * (1 + shock);
     const value = clamp(100 * raw * (1 - Math.min(pen, 0.9)), 0, 100);
     return { value, detail: { P7, P15, P21, P30, Pevent: ev.mm, Devent: ev.daysAgo, Tsol, dTsol, SM, ET7, Tmin7, dry: ev.daysAgo } };
   },
 
   criteres: [
-    ['Pluie déclenchante', "meilleur cumul sur 48 h des 21 derniers jours — nul sous 20 mm, plein à 60"],
-    ['Délai', "optimal 10–20 j après l'épisode (pic 14 j), s'effondre après ~1 mois"],
-    ['Humidité entretenue', 'pluie des 15 j (30 → 80 mm) — une pluie unique suivie de sec = avortement'],
-    ['Température du sol', 'favorable 13–19 °C, nul hors 8–22 °C'],
+    ['Pluie déclenchante', "meilleur cumul sur 48 h des 21 derniers jours — nul sous 12 mm, plein à 45"],
+    ['Délai', "optimal 8–22 j après l'épisode (pic 14 j), s'effondre après ~5 semaines"],
+    ['Humidité entretenue', 'pluie des 15 j (12 → 45 mm) — une pluie unique suivie de sec = avortement'],
+    ['Température du sol', 'favorable 12–20 °C, nul hors 8–23 °C'],
     ['Choc thermique', 'baisse de 2–6 °C sur 10 j → bonus'],
     ['Pénalités', 'gel, semaine évaporante, canicule juste avant'],
   ],
