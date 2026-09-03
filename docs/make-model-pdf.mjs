@@ -100,8 +100,8 @@ const SPECIES = [
       ['Pénalité dessèchement', 'ET0 - pluie sur 7 j, de 0 à 25 mm', 'Pénalité -35 % max'],
       ['Pénalité canicule', 'T° max entre J-20 et J-10 > 34 °C', 'Pénalité -15 %'],
     ],
-    calage: 'Recalé sur GBIF 2019-2025 : les seuils d\'origine sous-cotaient les vraies observations (médiane 8/100). Seuils élargis, planchers relevés.',
-    formule: 'raw = trig^0.7 x délai x bande° x (0.45 + 0.55·hum15) x (0.5 + 0.5·humSol) x (1 + choc) x 0.88   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
+    calage: 'Recalé sur GBIF 2019-2025 : les seuils d\'origine sous-cotaient les vraies observations (médiane 8/100). Déclencheur et fenêtre d\'humidité élargis, planchers relevés. Médiane aux obs désormais 21/100 (p90 71), AUC 0.69.',
+    formule: 'raw = trig^0.7 x délai x bande° x (0.5 + 0.5·hum15) x (0.55 + 0.45·humSol) x (1 + choc)   ;   score = 100·raw x (1 - pénalités, plafond -90 %)',
   },
   {
     nom: 'Girolle', latin: 'Cantharellus cibarius',
@@ -286,20 +286,22 @@ doc.addPage();
 h1('Calage sur observations GBIF (2019-2025)');
 p("Rejeu du modèle sur les occurrences GBIF passées contre des tirages au hasard en saison (pseudo-absences). Métrique : % des observations dont le score dépasse la médiane « au hasard » — 50 % = modèle nul, > 70 % = bon signal.");
 doc.moveDown(0.2);
+p("Métrique : AUC = probabilité qu'une observation score plus haut qu'une pseudo-absence (tirage déterministe, 1000 points). 0.5 = nul, 0.7 = acceptable, 0.8 = bon, 0.9 = excellent.");
+doc.moveDown(0.2);
 table(
-  [{ t: 'Espèce', w: 0.24 }, { t: 'n obs', w: 0.12 }, { t: 'Score obs (méd)', w: 0.22 }, { t: 'Séparation', w: 0.16 }, { t: 'Suite', w: 0.26 }],
+  [{ t: 'Espèce', w: 0.24 }, { t: 'n obs', w: 0.1 }, { t: 'Score obs (méd, p90)', w: 0.26 }, { t: 'AUC', w: 0.1 }, { t: 'Note', w: 0.3 }],
   [
-    ['Cèpe', '107', '8 -> recalé', '79 %', 'seuils élargis'],
-    ['Girolle', '89', '46', '78 %', 'OK'],
-    ['Pied-de-mouton', '51', '44', '80 %', 'OK'],
-    ['Trompette', '29', '60', '83 %', 'OK'],
-    ['Chanterelle en tube', '40', '75', '78 %', 'un peu optimiste'],
-    ['Sanguin', '24', '30 (Q1 = 0)', '71 %', 'déclencheur adouci'],
-    ['Truffe', '2', '-', '-', 'GBIF quasi vide - non calable'],
-    ['Morille', '40', '22', '63 %', 'besoin couche brûlis'],
+    ['Trompette de la mort', '29', '60 · 100', '0.75', '-'],
+    ['Pied-de-mouton', '51', '44 · 75', '0.72', '-'],
+    ['Girolle', '89', '46 · 86', '0.70', '-'],
+    ['Chanterelle en tube', '40', '75 · 100', '0.70', 'un peu optimiste'],
+    ['Cèpe', '107', '21 · 71', '0.69', 'recalé (médiane était 8)'],
+    ['Sanguin', '24', '38 · 76', '0.67', 'peu d\'observations'],
+    ['Morille', '40', '19 · 68', '0.62', 'manque la couche brûlis'],
+    ['Truffe noire', '2', '-', '0.57', 'GBIF quasi vide - non calable'],
   ],
 );
-p("Les seuils fins et la truffe seront revus au fur et à mesure des remontées de terrain (data/observations.jsonl via l'appli).", { color: GREY });
+p("Signal météo modeste mais réel. Modèles gelés à cet état : l'affinage fin et la truffe attendent les observations terrain (data/observations.jsonl via l'appli). Voir METHODE.md pour ce que ce calage vaut exactement.", { color: GREY });
 
 /* ---------- une page par espèce ---------- */
 for (const sp of SPECIES) {

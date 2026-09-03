@@ -84,7 +84,7 @@ reste humide.*
 | Pénalité canicule préalable | `heatPrior` | `−0.15` si > 34 °C | stress du mycélium avant l'épisode |
 
 ```
-raw  = Pevent_scale^0.7 · delai · bande_thermique · (0.45+0.55·moist) · (0.5+0.5·SM) · (1+choc) · 0.88
+raw  = Pevent_scale^0.7 · delai · bande_thermique · (0.5+0.5·moist) · (0.55+0.45·SM) · (1+choc)
 cepe = clamp( 100 · raw · (1 − min(pénalités, 0.9)), 0, 100 )
 ```
 
@@ -130,20 +130,21 @@ Multiplie l'indice météo de la forêt.
 ## Calage (sept. 2026)
 
 `geo/backfill-archive.mjs 2019 2025` (archive ERA5 complète) + `geo/calage.mjs` :
-rejeu du modèle sur les occurrences GBIF passées, comparé à des pseudo-absences
-(mailles/dates au hasard en saison). Métrique = % des observations au-dessus de la
-médiane « au hasard » (50 % = modèle nul, > 70 % = bon signal).
+rejeu du modèle sur les occurrences GBIF, comparé à 1000 pseudo-absences (mailles/dates
+au hasard en saison, tirage déterministe). Métrique = **AUC** (proba qu'une obs score
+plus haut qu'une pseudo-absence) : 0.5 nul · 0.7 acceptable · 0.8 bon · 0.9 excellent.
 
-| Espèce | n obs (météo) | Score obs (méd) | Séparation | Suite |
+| Espèce | n obs | Score obs (méd, p90) | AUC | Note |
 |---|---|---|---|---|
-| Cèpe | 107 | 8 → **recalé** | 79 % | seuils élargis (voir ci-dessus) |
-| Girolle | 89 | 46 | 78 % | OK |
-| Pied-de-mouton | 51 | 44 | 80 % | OK |
-| Trompette | 29 | 60 | 83 % | OK |
-| Chanterelle en tube | 40 | 75 | 78 % | un peu optimiste |
-| Sanguin | 24 | 30 (Q1 = 0) | 71 % | **déclencheur adouci** |
-| Truffe | 2 | — | — | GBIF quasi vide (discrétion des trufficulteurs) — non calable |
-| Morille | 40 | 22 | 63 % | tune léger ; besoin de la couche brûlis pour un vrai signal |
+| Trompette | 29 | 60 · 100 | **0.75** | — |
+| Pied-de-mouton | 51 | 44 · 75 | 0.72 | — |
+| Girolle | 89 | 46 · 86 | 0.70 | — |
+| Chanterelle en tube | 40 | 75 · 100 | 0.70 | hasard à 36 : optimiste |
+| Cèpe | 107 | 21 · 71 | 0.69 | recalé (médiane était 8) |
+| Sanguin | 24 | 38 · 76 | 0.67 | peu d'obs |
+| Morille | 40 | 19 · 68 | 0.62 | faible — manque la couche brûlis |
+| Truffe | 2 | — | 0.57 | GBIF quasi vide — non calable |
 
-À relancer après chaque modif de seuils, et quand les observations terrain
-(`data/observations.jsonl`, via l'appli) seront assez nombreuses → `geo/observations.mjs`.
+**Modèles gelés à cet état** (voir `METHODE.md` § 3). Signal météo modeste mais réel ;
+la truffe et l'affinage fin attendent les observations terrain
+(`data/observations.jsonl` via l'appli → `geo/observations.mjs`).

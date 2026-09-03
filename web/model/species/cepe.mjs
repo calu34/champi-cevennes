@@ -47,7 +47,7 @@ export default {
     pen += 0.35 * clamp((ET7 - P7) / 25, 0, 1);
     if (heatPrior > 34) pen += 0.15;
 
-    const raw = Math.pow(trig, 0.7) * lag * band * (0.45 + 0.55 * moist) * (0.5 + 0.5 * SM) * (1 + shock) * 0.88;
+    const raw = Math.pow(trig, 0.7) * lag * band * (0.5 + 0.5 * moist) * (0.55 + 0.45 * SM) * (1 + shock);
     const value = clamp(100 * raw * (1 - Math.min(pen, 0.9)), 0, 100);
     return { value, detail: { P7, P15, P21, P30, Pevent: ev.mm, Devent: ev.daysAgo, Tsol, dTsol, SM, ET7, Tmin7, dry: ev.daysAgo } };
   },
